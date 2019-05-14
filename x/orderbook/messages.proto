@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package orderbook;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/iov-one/weave/codec.proto";
+
+message PostOrder {
+  weave.Metadata metadata = 1;
+  bytes id = 2 [(gogoproto.customname) = "OrderID"];
+  int64 amount = 3;
+  int64 price = 4;
+  Side side = 5;
+  int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+}
+
+message CancelOrder {
+  weave.Metadata metadata = 1;
+  bytes id = 2 [(gogoproto.customname) = "OrderID"];
+}
