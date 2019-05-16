@@ -5,7 +5,7 @@ package orderbook;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/iov-one/weave/codec.proto";
 
-message PostOrder {
+message PostOrderMsg {
   weave.Metadata metadata = 1;
   bytes id = 2 [(gogoproto.customname) = "OrderID"];
   int64 amount = 3;
@@ -14,7 +14,7 @@ message PostOrder {
   int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
-message CancelOrder {
+message CancelOrderMsg {
   weave.Metadata metadata = 1;
   bytes id = 2 [(gogoproto.customname) = "OrderID"];
 }

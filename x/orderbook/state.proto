@@ -4,36 +4,39 @@ package orderbook;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/iov-one/weave/codec.proto";
+import "github.com/iov-one/weave/coin/codec.proto";
 
 message Order {
   weave.Metadata metadata = 1;
-  bytes id = 2 [(gogoproto.customname) = "OrderID"];
-  int64 amount = 3;
-  int64 price = 4;
-  Side side = 5;
-  int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  bytes order_id = 2; 
+  bytes user_id = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  coin.Coin amount = 4;
+  int64 price = 5;
+  Side side = 6;
+  int64 timestamp = 7 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
+enum Type {
+  ASK = 0;
+  BID = 1;
+}
+ 
 message Side {
-  weave.Metadata metadata = 1;
-  enum Type {
-      ASK = 0;
-      BID = 1;
-  }
-  Type type = 2; 
+  Type type = 1; 
 }
 
 message Trade {
   weave.Metadata metadata = 1;
-  int64 makerId = 2;
-  int64 takerId = 3;
+  bytes maker_id = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes taker_id = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   int64 amount = 4;
-  int64 price = 5; 
+  int64 price = 5;
+  int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 message OrderBook {
   weave.Metadata metadata = 1;
   bytes id = 2 [(gogoproto.customname) = "OrderID"];
-  repeated Order askOrders = 3;
-  repeated Order bidOrders = 4;
+  repeated Order ask_orders = 3;
+  repeated Order bid_orders = 4;
 }

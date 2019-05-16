@@ -6,18 +6,21 @@ This module defines the required components for orderbook. Orderbook works by ma
 
 ### State
 - #### Order
-  - ID
+  - Id
+  - UserId
   - Amount
   - Price
   - Side (Ask or Bid)
+  - Timestamp
 - #### Order book
   - AskOrders
   - BidOrders
 - #### Trade
-  - MakerId
-  - TakerId
+  - Maker
+  - Taker
   - Amount
   - Price
+  - Timestamp (Posting time)
 
 ### Messages 
  - #### Post order
@@ -31,7 +34,7 @@ First orders are sorted in ascending or descending order. Ask orders are sorted 
 - ##### Best price offer strategy
   - When a matching order by price and amount is found order is placed instantly.
 - ##### Partially filled order
-  - If an order cannot be fulfilled entirely in one transaction, the remaining lots become a “resting order” which is included in the order book
+  - If an order cannot be fulfilled entirely in one transaction, the remaining lots become a “resting order” which is included in the order book. Resting orders are prioritised and fulfilled when matching orders are received.
 - ##### No match
   - Recieved order becomes an resting order for future trades.
 - ##### Multiple orders with same price
