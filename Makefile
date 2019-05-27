@@ -24,10 +24,10 @@ clean:
 	rm -f ${BUILDOUT}
 
 build:
-	go build $(BUILD_FLAGS) -o $(BUILDOUT) .
+	go build $(BUILD_FLAGS) -o $(BUILDOUT) ./cmd/mycoind
 
 install:
-	go install $(BUILD_FLAGS) .
+	go install $(BUILD_FLAGS) ./cmd/mycoind
 
 test:
 	go vet ./...
