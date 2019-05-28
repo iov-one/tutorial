@@ -18,14 +18,10 @@ enum OrderState {
   DONE = 1;
   CANCEL = 2;
 }
-
-enum Type {
-  ASK = 0;
-  BID = 1;
-}
  
 message Side {
-  Type type = 1;
+  ASK = 0;
+  BID = 1;
 }
 
 message Order {
