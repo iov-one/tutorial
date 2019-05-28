@@ -7,9 +7,8 @@ set -o errexit -o nounset -o pipefail
 
 out=${1:-docs/proto}
 
-user=$(id -u):$(id -g)
-protoc="docker run --rm --user ${user} --mount type=bind,source=$(pwd),target=/work --tmpfs /tmp:exec iov1/prototool-docker protoc"
-prototool="docker run --rm --user ${user} --mount type=bind,source=$(pwd),target=/work --tmpfs /tmp:exec iov1/prototool-docker prototool"
+protoc="docker run --rm -v $(pwd):/work iov1/prototool:v0.2.0 protoc"
+prototool="docker run --rm -v $(pwd):/work iov1/prototool:v0.2.0 prototool"
 
 mkdir -p ${out}
 files=$(${prototool} files | grep -v examples | grep -v cmd/bcpd | sort)
