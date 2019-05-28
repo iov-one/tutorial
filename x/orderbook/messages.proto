@@ -7,14 +7,14 @@ import "github.com/iov-one/weave/codec.proto";
 
 message PostOrderMsg {
   weave.Metadata metadata = 1;
-  bytes id = 2 [(gogoproto.customname) = "OrderID"];
-  int64 amount = 3;
-  int64 price = 4;
+  bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
+  int64 volume = 3;
+  coin coin_price = 4;
   Side side = 5;
   int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 message CancelOrderMsg {
   weave.Metadata metadata = 1;
-  bytes id = 2 [(gogoproto.customname) = "OrderID"];
+  bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
 }

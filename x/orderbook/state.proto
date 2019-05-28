@@ -4,16 +4,19 @@ package orderbook;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/iov-one/weave/codec.proto";
-import "github.com/iov-one/weave/coin/codec.proto";
 
-message Order {
-  weave.Metadata metadata = 1;
-  bytes order_id = 2; 
-  bytes user_id = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
-  coin.Coin amount = 4;
-  int64 price = 5;
-  Side side = 6;
-  int64 timestamp = 7 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+message Coin {
+  // Whole coins, -10^15 < integer < 10^15
+  int64 whole = 1;
+  // Billionth of coins. 0 <= abs(fractional) < 10^9
+  // If fractional != 0, must have same sign as integer
+  int64 fractional = 2;
+}
+
+enum OrderState {
+  WAIT = 0;
+  DONE = 1;
+  CANCEL = 2;
 }
 
 enum Type {
@@ -22,21 +25,71 @@ enum Type {
 }
  
 message Side {
-  Type type = 1; 
+  Type type = 1;
 }
 
+message Order {
+  // Unique identifier of order
+  bytes order_id = 1 [(gogoproto.customname) = "OrderID"];
+  // Unique identifier of maker that created order
+  bytes maker_id = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  Market market = 3;
+  Side side = 4;
+  OrderState order_state = 5;
+  // The amount maker want to sell/buy
+  int64 origin_volume = 6;
+  // Remaning volume. (This part enables partially filled orders)
+  int64 remaining_volume = 7;
+  // Executed (Fullfiled) volume. origin_volume = executed_volume + remaining_volume
+  int64 executed_volume = 8;
+  // Price for each unit
+  Coin coin_price = 9;
+  // Executed trades
+  repeated Trade trades = 10;
+  // Count of executed trade
+  int64 trades_count = 11;
+  // created_at defines create time of an order
+  int64 created_at = 12 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  // updated_at defines update time of an order
+  int64 updated_at = 13 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+}
+ 
+// Trade is a settled partial/full order
 message Trade {
   weave.Metadata metadata = 1;
-  bytes maker_id = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
-  bytes taker_id = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
-  int64 amount = 4;
-  int64 price = 5;
-  int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  bytes trade_id = 2 [(gogoproto.customname) = "TradeId"];
+  Market market = 3;
+  Order order = 4;
+  // Unique identifier of taker
+  bytes taker_id = 5 [(gogoproto.casttype) = "github.com/iov-one/weave.Address", (gogoproto.customname) = "TakerId"];
+  // Unique identifier of maker
+  bytes maker_id = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address", (gogoproto.customname) = "MakerId"];
+  int64 volume = 7;
+  Coin coin_price = 8;
+  // executed_at defines execution time of an order
+  int64 executed_at = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 message OrderBook {
   weave.Metadata metadata = 1;
-  bytes id = 2 [(gogoproto.customname) = "OrderID"];
-  repeated Order ask_orders = 3;
-  repeated Order bid_orders = 4;
+  // Unique identifier of orderbook
+  bytes orderbook_id = 2 [(gogoproto.customname) = "OrderBookID"];
+  Market market = 3;
+  Side side = 4;
+  repeated Order ask_orders = 5;
+  int64 total_ask_count = 6;
+  repeated Order bid_orders = 7;
+  int64 total_bid_count = 8;
+}
+
+message Market {
+  weave.Metadata metadata = 1;
+  bytes market_id = 2 [(gogoproto.customname) = "MarketID"];
+  // Market name
+  string name = 3;
+  string ask_unit = 4;
+  string bid_unit = 5;
+  // TODO add fee design
+  // TODO add min and max amount
+  // TODO add precision
 }
