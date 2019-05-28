@@ -12,4 +12,4 @@ prototool="docker run --rm -v $(pwd):/work iov1/prototool:v0.2.0 prototool"
 
 mkdir -p ${out}
 files=$(${prototool} files | grep -v examples | grep -v cmd/bcpd | sort)
-${protoc} -I . -I /usr/include --doc_out=${out} --doc_opt=html,index.html ${files}
+${protoc} -I . -I /usr/include -I extern -I extern/github.com/iov-one/weave --doc_out=${out} --doc_opt=html,index.html ${files}
