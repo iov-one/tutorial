@@ -2,6 +2,8 @@ package orderbook
 
 import (
 	"github.com/iov-one/weave"
+	coin "github.com/iov-one/weave/coin"
+	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/migration"
 )
 
@@ -37,14 +39,60 @@ func (CancelOrderMsg) Path() string {
 	return pathCancelOrder
 }
 
-func (CreateOrderBookMsg) Validate() error {
+func (m CreateOrderBookMsg) Validate() error {
+	if err := m.Metadata.Validate(); err != nil {
+		return errors.Wrap(err, "metadata")
+	}
+	if err := validID(m.MarketID); err != nil {
+		return errors.Wrap(err, "market id")
+	}
+	if !coin.IsCC(m.AskTicker) {
+		return errors.Wrapf(errors.ErrInput, "Invalid Ask Ticker: %s", m.AskTicker)
+	}
+	if !coin.IsCC(m.BidTicker) {
+		return errors.Wrapf(errors.ErrInput, "Invalid Bid Ticker: %s", m.BidTicker)
+	}
 	return nil
 }
 
-func (CreateOrderMsg) Validate() error {
+func (m CreateOrderMsg) Validate() error {
+	if err := m.Metadata.Validate(); err != nil {
+		return errors.Wrap(err, "metadata")
+	}
+	if err := m.TraderID.Validate(); err != nil {
+		return errors.Wrap(err, "trader id")
+	}
+	if err := validID(m.OrderBookID); err != nil {
+		return errors.Wrap(err, "orderbook id")
+	}
+	if err := m.Offer.Validate(); err != nil {
+		return errors.Wrap(err, "offer")
+	}
+	if !m.Offer.IsPositive() {
+		return errors.Wrap(errors.ErrInput, "offer must be positive")
+	}
+	// TODO: validate Amount once we have code for Amount
 	return nil
 }
 
-func (CancelOrderMsg) Validate() error {
+func (m CancelOrderMsg) Validate() error {
+	if err := m.Metadata.Validate(); err != nil {
+		return errors.Wrap(err, "metadata")
+	}
+	if err := validID(m.OrderID); err != nil {
+		return errors.Wrap(err, "order id")
+	}
+	return nil
+}
+
+// validID returns an error if this is not an 8-byte ID
+// as expected for orm.IDGenBucket
+func validID(id []byte) error {
+	if len(id) == 0 {
+		return errors.Wrap(errors.ErrEmpty, "id missing")
+	}
+	if len(id) != 8 {
+		return errors.Wrap(errors.ErrInput, "id is invalid length (expect 8 bytes)")
+	}
 	return nil
 }
