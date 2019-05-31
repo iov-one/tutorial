@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package orderbook;
 
-import "extern/github.com/iov-one/weave/codec.proto";
+import "github.com/iov-one/weave/codec.proto";
 import "gogoproto/gogo.proto";
 
 //------------------- STATE -------------------
 
-message Coin {
+message Amount {
   // Whole coins, -10^15 < integer < 10^15
   int64 whole = 1;
   // Billionth of coins. 0 <= abs(fractional) < 10^9
@@ -43,7 +43,7 @@ message Order {
   // Executed (Fullfiled) volume. origin_volume = executed_volume + remaining_volume
   int64 executed_volume = 8;
   // Price for each unit
-  Coin coin_price = 9;
+  Amount price = 9;
   // Executed trades
   repeated Trade trades = 10;
   // Count of executed trade
@@ -71,7 +71,7 @@ message Trade {
     (gogoproto.customname) = "MakerId"
   ];
   int64 volume = 7;
-  Coin coin_price = 8;
+  Amount price = 8;
   // executed_at defines execution time of an order
   int64 executed_at = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
@@ -93,8 +93,8 @@ message Market {
   bytes market_id = 2 [(gogoproto.customname) = "MarketID"];
   // Market name
   string name = 3;
-  string ask_unit = 4;
-  string bid_unit = 5;
+  string ask_ticker = 4;
+  string bid_ticker = 5;
   // TODO add fee design
   // TODO add min and max amount
   // TODO add precision
@@ -107,7 +107,7 @@ message PostOrderMsg {
   weave.Metadata metadata = 1;
   bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
   int64 volume = 3;
-  Coin coin_price = 4;
+  Amount price = 4;
   Side side = 5;
   int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
