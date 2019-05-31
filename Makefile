@@ -14,7 +14,7 @@ MODE ?= set
 
 # for dockerized prototool
 USER := $(shell id -u):$(shell id -g)
-DOCKER_BASE := docker run --rm --user $(USER) --mount type=bind,source="$(shell pwd)",target=/work --tmpfs /tmp:exec iov1/prototool:v0.2.0
+DOCKER_BASE := docker run --rm --user=${USER} -v $(shell pwd):/work iov1/prototool:v0.2.2
 PROTOTOOL := $(DOCKER_BASE) prototool
 PROTOC := $(DOCKER_BASE) protoc
 
@@ -47,7 +47,8 @@ protofmt:
 	$(PROTOTOOL) format -w
 
 protodocs:
+	# TODO: fix compilation steps and add back to protoc
 	./scripts/build_protodocs.sh docs/proto
 
-protoc: protolint protofmt protodocs
+protoc: protolint protofmt
 	$(PROTOTOOL) generate
