@@ -47,10 +47,13 @@ func (m CreateOrderBookMsg) Validate() error {
 		return errors.Wrap(err, "market id")
 	}
 	if !coin.IsCC(m.AskTicker) {
-		return errors.Wrapf(errors.ErrInput, "Invalid Ask Ticker: %s", m.AskTicker)
+		return errors.Wrapf(errors.ErrCurrency, "Invalid Ask Ticker: %s", m.AskTicker)
 	}
 	if !coin.IsCC(m.BidTicker) {
-		return errors.Wrapf(errors.ErrInput, "Invalid Bid Ticker: %s", m.BidTicker)
+		return errors.Wrapf(errors.ErrCurrency, "Invalid Bid Ticker: %s", m.BidTicker)
+	}
+	if m.BidTicker <= m.AskTicker {
+		return errors.Wrapf(errors.ErrCurrency, "ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)
 	}
 	return nil
 }
