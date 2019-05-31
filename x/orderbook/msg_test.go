@@ -92,3 +92,45 @@ func TestValidateCreateOrderBookMsg(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateCancelOrderMsg(t *testing.T) {
+	cases := map[string]struct {
+		msg     weave.Msg
+		wantErr *errors.Error
+	}{
+		"success": {
+			msg: &CancelOrderMsg{
+				Metadata: &weave.Metadata{Schema: 1},
+				OrderID:  weavetest.SequenceID(5),
+			},
+			wantErr: nil,
+		},
+		"missing metadata": {
+			msg: &CancelOrderMsg{
+				OrderID: weavetest.SequenceID(5),
+			},
+			wantErr: errors.ErrMetadata,
+		},
+		"bad order id": {
+			msg: &CancelOrderMsg{
+				Metadata: &weave.Metadata{Schema: 1},
+				OrderID:  []byte{0, 0, 0, 0, 0, 1},
+			},
+			wantErr: errors.ErrInput,
+		},
+		"missing order id": {
+			msg: &CancelOrderMsg{
+				Metadata: &weave.Metadata{Schema: 1},
+			},
+			wantErr: errors.ErrEmpty,
+		},
+	}
+
+	for testName, tc := range cases {
+		t.Run(testName, func(t *testing.T) {
+			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+		})
+	}
+}
