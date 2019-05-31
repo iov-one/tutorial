@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+package orderbook;
+
+import "github.com/iov-one/weave/codec.proto";
+import "github.com/iov-one/weave/coin/codec.proto";
+import "gogoproto/gogo.proto";
+
+//------------------- STATE -------------------
+
+// Amount is like a coin.Coin but without a ticker.
+// We use it where a ticker is impossible (like quantity)
+// For offers where ticker is implied, we still use coin.Coin
+// as we inherit much math from there.
+//
+// TODO: work out how to multiply Amount * Coin
+message Amount {
+  // Whole coins, -10^15 < integer < 10^15
+  int64 whole = 1;
+  // Billionth of coins. 0 <= abs(fractional) < 10^9
+  // If fractional != 0, must have same sign as integer
+  int64 fractional = 2;
+}
+
+// OrderState defines if the proposal is active
+enum OrderState {
+  ORDER_STATE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
+  // Open orders can create trades
+  ORDER_STATE_OPEN = 1 [(gogoproto.enumvalue_customname) = "Open"];
+  // Done orders have been fulfilled and are empty
+  ORDER_STATE_DONE = 2 [(gogoproto.enumvalue_customname) = "Done"];
+  // Cancelled orders were closed at the makers request before they were fulfilled
+  ORDER_STATE_CANCEL = 3 [(gogoproto.enumvalue_customname) = "Cancel"];
+}
+
+// Side determines which side of the orderbook we are on (ask or bid)
+// This defines the appropriate ticker (ask_ticker or bid_ticker)
+enum Side {
+  SIDE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
+  SIDE_ASK = 1 [(gogoproto.enumvalue_customname) = "Ask"];
+  SIDE_BID = 2 [(gogoproto.enumvalue_customname) = "Bid"];
+}
+
+// Order is a request to make a trade.
+// We create an order for every trade request, even if it settles immediately,
+// in order to provide history and clean auditability of the market.
+message Order {
+  // Unique identifier of order
+  bytes order_id = 1 [(gogoproto.customname) = "OrderID"];
+  // Unique identifier of maker that created order
+  bytes maker_id = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  Market market = 3;
+  Side side = 4;
+  OrderState order_state = 5;
+  // The amount maker want to sell/buy
+  coin.Coin original_offer = 6;
+  // Remaning offer. (This part enables partially filled orders)
+  coin.Coin remaining_offer = 7;
+  // Price for each unit (in tickers of the opposite currency from our side)
+  Amount price = 9;
+  // Executed trades (referenced ids)
+  repeated bytes trade_ids = 10;
+  // created_at defines create time of an order
+  int64 created_at = 11 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  // updated_at defines update time of an order
+  int64 updated_at = 12 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+}
+
+// Trade is a settled partial/full order
+// We store these as independent entities to help with queries to map
+// the prices over time. They are also referenced by the Orders, so we can
+// see how much was fulfilled.
+//
+// Ask and Bid tickers are "inherited" from the orderbook
+message Trade {
+  weave.Metadata metadata = 1;
+  // bytes trade_id = 2 [(gogoproto.customname) = "TradeId"];
+  bytes orderbook_id = 3 [(gogoproto.customname) = "OrderBookID"];
+  bytes order_id = 4 [(gogoproto.customname) = "OrderID"];
+  // Unique identifier of taker (this is an order that was instantly fulfilled)
+  bytes taker_id = 5 [
+    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
+    (gogoproto.customname) = "TakerId"
+  ];
+  // Unique identifier of maker (this is an order that was stored first before fulfillment)
+  bytes maker_id = 6 [
+    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
+    (gogoproto.customname) = "MakerId"
+  ];
+  // this is how much each side paid (they got the opposite one)
+  coin.Coin maker_paid = 7;
+  coin.Coin taker_paid = 8;
+  // executed_at defines execution time of an order
+  int64 executed_at = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+}
+
+// An Orderbook lives in a market and represents a ask/bid pair.
+// We only allow one orderbook for each pair. To avoid confusion,
+// we enforce ask_ticker < bid_ticker so their cannot be two orderbooks
+// for the same trading pair.
+//
+// Orders and Trades must reference an orderbook and use those tickers as denominations
+message OrderBook {
+  weave.Metadata metadata = 1;
+  // Unique identifier of orderbook
+  // bytes orderbook_id = 2 [(gogoproto.customname) = "OrderBookID"];
+
+  bytes market_id = 3 [(gogoproto.customname) = "MarketID"];
+  string ask_ticker = 4;
+  string bid_ticker = 5;
+  // repeated Order ask_orders = 5;
+  int64 total_ask_count = 6;
+  // repeated Order bid_orders = 7;
+  int64 total_bid_count = 7;
+}
+
+// A market holds many Orderbooks and is just a grouping for now.
+// Probably we only want one market on a chain, but we could add additional
+// rules to each market and then allow multiple.
+//
+// Currently Markets can only be created in the genesis file
+message Market {
+  weave.Metadata metadata = 1;
+  // bytes market_id = 2 [(gogoproto.customname) = "MarketID"];
+
+  // Owner is allowed to create new orderbooks in this Market
+  bytes owner = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  // Market name
+  string name = 3;
+  // TODO add fee design
+  // TODO add min and max amount
+  // TODO add precision
+
+}
+
+//------------------- STATE -------------------
+
+// CreateOrderMsg will offer to sell some currency on an orderbook
+// at a given price.
+message CreateOrderMsg {
+  weave.Metadata metadata = 1;
+  // TraderID is the Address that will pay the offer,
+  // and get the matches.
+  // Defaults to x.MainSigner() if left blank
+  bytes trader_id = 2 [
+    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
+    (gogoproto.customname) = "TraderID"
+  ];
+  // OrderBookID must support Offer.Ticker as one of the two sides,
+  // Which side this order will be, is automatically inferred
+  bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
+  // Offer is how much will be paid
+  coin.Coin offer = 4;
+  // Price is how much is requested for each unit of the offer token
+  Amount price = 5;
+}
+
+// CancelOrderMsg will remove a standing order.
+// It must be authorized by the trader who created the order.
+// All remaining funds return to that address.
+message CancelOrderMsg {
+  weave.Metadata metadata = 1;
+  bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
+}
+
+// CreateOrderBookMsg creates a new orderbook in an existing market.
+// It must be executed by the owner of the market.
+message CreateOrderBookMsg {
+  weave.Metadata metadata = 1;
+  bytes market_id = 2 [(gogoproto.customname) = "MarketID"];
+  string ask_ticker = 3;
+  string bid_ticker = 4;
+}
