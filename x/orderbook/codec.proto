@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package orderbook;
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/iov-one/weave/codec.proto";
+import "extern/github.com/iov-one/weave/codec.proto";
+import "gogoproto/gogo.proto";
+
+//------------------- STATE -------------------
 
 message Coin {
   // Whole coins, -10^15 < integer < 10^15
@@ -14,14 +16,16 @@ message Coin {
 }
 
 enum OrderState {
-  WAIT = 0;
-  DONE = 1;
-  CANCEL = 2;
+  ORDER_STATE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
+  ORDER_STATE_WAIT = 1 [(gogoproto.enumvalue_customname) = "Wait"];
+  ORDER_STATE_DONE = 2 [(gogoproto.enumvalue_customname) = "Done"];
+  ORDER_STATE_CANCEL = 3 [(gogoproto.enumvalue_customname) = "Cancel"];
 }
- 
-message Side {
-  ASK = 0;
-  BID = 1;
+
+enum Side {
+  SIDE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
+  SIDE_ASK = 1 [(gogoproto.enumvalue_customname) = "Ask"];
+  SIDE_BID = 2 [(gogoproto.enumvalue_customname) = "Bid"];
 }
 
 message Order {
@@ -49,7 +53,7 @@ message Order {
   // updated_at defines update time of an order
   int64 updated_at = 13 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
- 
+
 // Trade is a settled partial/full order
 message Trade {
   weave.Metadata metadata = 1;
@@ -57,9 +61,15 @@ message Trade {
   Market market = 3;
   Order order = 4;
   // Unique identifier of taker
-  bytes taker_id = 5 [(gogoproto.casttype) = "github.com/iov-one/weave.Address", (gogoproto.customname) = "TakerId"];
+  bytes taker_id = 5 [
+    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
+    (gogoproto.customname) = "TakerId"
+  ];
   // Unique identifier of maker
-  bytes maker_id = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address", (gogoproto.customname) = "MakerId"];
+  bytes maker_id = 6 [
+    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
+    (gogoproto.customname) = "MakerId"
+  ];
   int64 volume = 7;
   Coin coin_price = 8;
   // executed_at defines execution time of an order
@@ -88,4 +98,21 @@ message Market {
   // TODO add fee design
   // TODO add min and max amount
   // TODO add precision
+
+}
+
+//------------------- STATE -------------------
+
+message PostOrderMsg {
+  weave.Metadata metadata = 1;
+  bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
+  int64 volume = 3;
+  Coin coin_price = 4;
+  Side side = 5;
+  int64 timestamp = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+}
+
+message CancelOrderMsg {
+  weave.Metadata metadata = 1;
+  bytes order_id = 2 [(gogoproto.customname) = "OrderID"];
 }
