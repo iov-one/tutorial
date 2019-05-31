@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/iov-one/weave"
+	coin "github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/weavetest"
 )
@@ -124,6 +125,93 @@ func TestValidateCancelOrderMsg(t *testing.T) {
 			},
 			wantErr: errors.ErrEmpty,
 		},
+	}
+
+	for testName, tc := range cases {
+		t.Run(testName, func(t *testing.T) {
+			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+		})
+	}
+}
+
+func TestValidateCreateOrderMsg(t *testing.T) {
+	trader := weavetest.NewCondition().Address()
+
+	cases := map[string]struct {
+		msg     weave.Msg
+		wantErr *errors.Error
+	}{
+		"success": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(100, 12345, "ETH"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: nil,
+		},
+		"missing metadata": {
+			msg: &CreateOrderMsg{
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(100, 12345, "ETH"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrMetadata,
+		},
+		"bad trader": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      []byte{17, 29, 0, 8},
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(100, 12345, "ETH"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrInput,
+		},
+		"bad orderbook id": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: []byte{32, 0, 0, 1},
+				Offer:       coin.NewCoinp(100, 12345, "ETH"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrInput,
+		},
+		"missing offer": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrEmpty,
+		},
+		"invalid offer": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(1, 0, "1WIN!"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrCurrency,
+		},
+		"negative offer": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(-5, 0, "ETH"),
+				Price:       NewAmountp(11, 0),
+			},
+			wantErr: errors.ErrInput,
+		},
+		// TODO: bad price
 	}
 
 	for testName, tc := range cases {

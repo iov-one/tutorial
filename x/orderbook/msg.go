@@ -62,11 +62,14 @@ func (m CreateOrderMsg) Validate() error {
 	if err := m.Metadata.Validate(); err != nil {
 		return errors.Wrap(err, "metadata")
 	}
-	if err := m.TraderID.Validate(); err != nil {
+	if err := m.Trader.Validate(); err != nil {
 		return errors.Wrap(err, "trader id")
 	}
 	if err := validID(m.OrderBookID); err != nil {
 		return errors.Wrap(err, "orderbook id")
+	}
+	if m.Offer == nil {
+		return errors.Wrap(errors.ErrEmpty, "offer")
 	}
 	if err := m.Offer.Validate(); err != nil {
 		return errors.Wrap(err, "offer")
