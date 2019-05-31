@@ -18,7 +18,7 @@ DOCKER_BASE := docker run --rm --user=${USER} -v $(shell pwd):/work iov1/prototo
 PROTOTOOL := $(DOCKER_BASE) prototool
 PROTOC := $(DOCKER_BASE) protoc
 
-all: clean build test
+all: clean test install
 
 clean:
 	rm -f ${BUILDOUT}
