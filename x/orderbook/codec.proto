@@ -46,10 +46,11 @@ enum Side {
 // in order to provide history and clean auditability of the market.
 message Order {
   // Unique identifier of order
-  bytes order_id = 1 [(gogoproto.customname) = "OrderID"];
-  // Unique identifier of maker that created order
-  bytes maker_id = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
-  Market market = 3;
+  // bytes order_id = 1 [(gogoproto.customname) = "OrderID"];
+
+  // Address of trader that created order (ad gets paid from it)
+  bytes trader = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
   Side side = 4;
   OrderState order_state = 5;
   // The amount maker want to sell/buy
@@ -75,18 +76,12 @@ message Order {
 message Trade {
   weave.Metadata metadata = 1;
   // bytes trade_id = 2 [(gogoproto.customname) = "TradeId"];
-  bytes orderbook_id = 3 [(gogoproto.customname) = "OrderBookID"];
+  bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
   bytes order_id = 4 [(gogoproto.customname) = "OrderID"];
-  // Unique identifier of taker (this is an order that was instantly fulfilled)
-  bytes taker_id = 5 [
-    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
-    (gogoproto.customname) = "TakerId"
-  ];
-  // Unique identifier of maker (this is an order that was stored first before fulfillment)
-  bytes maker_id = 6 [
-    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
-    (gogoproto.customname) = "MakerId"
-  ];
+  // Address of taker (this is an order that was instantly fulfilled)
+  bytes taker = 5 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  // Address of maker (this is an order that was stored first before fulfillment)
+  bytes maker = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // this is how much each side paid (they got the opposite one)
   coin.Coin maker_paid = 7;
   coin.Coin taker_paid = 8;
@@ -139,13 +134,9 @@ message Market {
 // at a given price.
 message CreateOrderMsg {
   weave.Metadata metadata = 1;
-  // TraderID is the Address that will pay the offer,
-  // and get the matches.
+  // Trader is the Address that will pay the offer, and get the matches.
   // Defaults to x.MainSigner() if left blank
-  bytes trader_id = 2 [
-    (gogoproto.casttype) = "github.com/iov-one/weave.Address",
-    (gogoproto.customname) = "TraderID"
-  ];
+  bytes trader = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // OrderBookID must support Offer.Ticker as one of the two sides,
   // Which side this order will be, is automatically inferred
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
