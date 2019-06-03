@@ -1,0 +1,43 @@
+sudo: required
+
+language: go
+
+services:
+- docker
+
+addons:
+  apt:
+    packages:
+    - docker-ce
+
+os:
+- linux
+
+go:
+# reason for bumping 1.11.x to 1.11.4+ is this: https://github.com/golang/go/issues/30446#issuecomment-468038052
+# - "1.11.4"
+- "1.12"
+
+
+env:
+  global:
+    - BUILD_VERSION=$(echo ${TRAVIS_COMMIT} | cut -c 1-10)
+    - MAIN_GO_VERSION=1.12
+    - GORACE="halt_on_error=1"
+
+script:
+- make protolint;
+- make test;
+# - if [[ "$TRAVIS_GO_VERSION" == "$MAIN_GO_VERSION" ]]; then
+#       make cover;
+#       ./coverage/upload.sh;
+#    fi;
+
+notifications:
+  email: false
+
+# whitelist long living branches to avoid testing feature branches twice (as branch and as pull request)
+branches:
+  only:
+  - master
+  - /^v[0-9]+\.[0-9]+\.[0-9]+$/
