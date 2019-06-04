@@ -1,4 +1,4 @@
-package orm
+package morm
 
 import (
 	"reflect"
@@ -17,10 +17,16 @@ import (
 //
 // This is the same interface as CloneableData. Using the right type names
 // provides an easier to read API.
+//
+// Model stores both the Key and the Value.
+// GetID/SetID are used to store and access the Key.
+// The ID is always set to nil before serializing and storing the Value.
 type Model interface {
 	weave.Persistent
 	Validate() error
 	Copy() orm.CloneableData
+	GetID() []byte
+	SetID([]byte) error
 }
 
 // ModelSlicePtr represents a pointer to a slice of models. Think of it as
@@ -47,7 +53,7 @@ type ModelBucket interface {
 	// All matching entities are appended to given destination slice. If no
 	// result was found, no error is returned and destination slice is not
 	// modified.
-	ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, dest ModelSlicePtr) (keys [][]byte, err error)
+	ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, dest ModelSlicePtr) error
 
 	// Put saves given model in the database. Before inserting into
 	// database, model is validated using its Validate method.
@@ -55,7 +61,7 @@ type ModelBucket interface {
 	// to create a unique key value.
 	// Using a key that already exists in the database cause the value to
 	// be overwritten.
-	Put(db weave.KVStore, key []byte, m Model) ([]byte, error)
+	Put(db weave.KVStore, m Model) error
 
 	// Delete removes an entity with given primary key from the database.
 	// It returns ErrNotFound if an entity with given key does not exist.
@@ -136,29 +142,31 @@ func (mb *modelBucket) One(db weave.ReadOnlyKVStore, key []byte, dest Model) err
 		return errors.Wrapf(errors.ErrType, "%T cannot be represented as %T", res, dest)
 	}
 
-	reflect.ValueOf(dest).Elem().Set(reflect.ValueOf(res).Elem())
+	ptr := reflect.ValueOf(dest)
+	ptr.Elem().Set(reflect.ValueOf(res).Elem())
+	ptr.Interface().(Model).SetID(key)
 	return nil
 }
 
-func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) ([][]byte, error) {
+func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) error {
 	objs, err := mb.b.GetIndexed(db, indexName, key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if len(objs) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	dest := reflect.ValueOf(destination)
 	if dest.Kind() != reflect.Ptr {
-		return nil, errors.Wrap(errors.ErrType, "destination must be a pointer to slice of models")
+		return errors.Wrap(errors.ErrType, "destination must be a pointer to slice of models")
 	}
 	if dest.IsNil() {
-		return nil, errors.Wrap(errors.ErrImmutable, "got nil pointer")
+		return errors.Wrap(errors.ErrImmutable, "got nil pointer")
 	}
 	dest = dest.Elem()
 	if dest.Kind() != reflect.Slice {
-		return nil, errors.Wrap(errors.ErrType, "destination must be a pointer to slice of models")
+		return errors.Wrap(errors.ErrType, "destination must be a pointer to slice of models")
 	}
 
 	// It is allowed to pass destination as both []MyModel and []*MyModel
@@ -169,51 +177,58 @@ func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key [
 		allowed = allowed.Elem()
 	}
 	if mb.model != allowed {
-		return nil, errors.Wrapf(errors.ErrType, "this bucket operates on %s model and cannot return %s", mb.model, allowed)
+		return errors.Wrapf(errors.ErrType, "this bucket operates on %s model and cannot return %s", mb.model, allowed)
 	}
 
-	keys := make([][]byte, 0, len(objs))
 	for _, obj := range objs {
 		if obj == nil || obj.Value() == nil {
 			continue
 		}
 		val := reflect.ValueOf(obj.Value())
+		val.Interface().(Model).SetID(obj.Key())
 		if !sliceOfPointers {
 			val = val.Elem()
 		}
+		// store the key on the model
 		dest.Set(reflect.Append(dest, val))
-		keys = append(keys, obj.Key())
 	}
-	return keys, nil
+	return nil
 
 }
 
-func (mb *modelBucket) Put(db weave.KVStore, key []byte, m Model) ([]byte, error) {
+func (mb *modelBucket) Put(db weave.KVStore, m Model) error {
 	mTp := reflect.TypeOf(m)
 	if mTp.Kind() != reflect.Ptr {
-		return nil, errors.Wrap(errors.ErrType, "model destination must be a pointer")
+		return errors.Wrap(errors.ErrType, "model destination must be a pointer")
 	}
 	if mb.model != mTp.Elem() {
-		return nil, errors.Wrapf(errors.ErrType, "cannot store %T type in this bucket", m)
+		return errors.Wrapf(errors.ErrType, "cannot store %T type in this bucket", m)
 	}
 
 	if err := m.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid model")
+		return errors.Wrap(err, "invalid model")
 	}
 
+	key := m.GetID()
 	if len(key) == 0 {
 		var err error
 		key, err = mb.idSeq.NextVal(db)
 		if err != nil {
-			return nil, errors.Wrap(err, "ID sequence")
+			return errors.Wrap(err, "ID sequence")
 		}
+	} else {
+		// always nil out the key before saving the value
+		m.SetID(nil)
 	}
 
 	obj := orm.NewSimpleObj(key, m)
 	if err := mb.b.Save(db, obj); err != nil {
-		return nil, errors.Wrap(err, "cannot store in the database")
+		return errors.Wrap(err, "cannot store in the database")
 	}
-	return key, nil
+	// after serialization, return original/generated key on model
+	m.SetID(key)
+
+	return nil
 }
 
 func (mb *modelBucket) Delete(db weave.KVStore, key []byte) error {
