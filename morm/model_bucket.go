@@ -5,6 +5,7 @@ import (
 
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/errors"
+	"github.com/iov-one/weave/orm"
 )
 
 // TODO
@@ -19,7 +20,7 @@ import (
 type Model interface {
 	weave.Persistent
 	Validate() error
-	Copy() CloneableData
+	Copy() orm.CloneableData
 }
 
 // ModelSlicePtr represents a pointer to a slice of models. Think of it as
@@ -75,7 +76,7 @@ type ModelBucket interface {
 // a bucket instance. Final implementation should operate directly on the
 // KVStore instead.
 func NewModelBucket(name string, m Model, opts ...ModelBucketOption) ModelBucket {
-	b := NewBucket(name, NewSimpleObj(nil, m))
+	b := orm.NewBucket(name, orm.NewSimpleObj(nil, m))
 
 	tp := reflect.TypeOf(m)
 	if tp.Kind() == reflect.Ptr {
@@ -101,15 +102,15 @@ type ModelBucketOption func(mb *modelBucket)
 // entities stored in the bucket are indexed using value returned by the
 // indexer function. If an index is unique, there can be only one entity
 // referenced per index value.
-func WithIndex(name string, indexer Indexer, unique bool) ModelBucketOption {
+func WithIndex(name string, indexer orm.Indexer, unique bool) ModelBucketOption {
 	return func(mb *modelBucket) {
 		mb.b = mb.b.WithIndex(name, indexer, unique)
 	}
 }
 
 type modelBucket struct {
-	b     Bucket
-	idSeq Sequence
+	b     orm.Bucket
+	idSeq orm.Sequence
 
 	// model is referencing the structure type. Event if the structure
 	// pointer is implementing Model interface, this variable references
@@ -208,7 +209,7 @@ func (mb *modelBucket) Put(db weave.KVStore, key []byte, m Model) ([]byte, error
 		}
 	}
 
-	obj := NewSimpleObj(key, m)
+	obj := orm.NewSimpleObj(key, m)
 	if err := mb.b.Save(db, obj); err != nil {
 		return nil, errors.Wrap(err, "cannot store in the database")
 	}
