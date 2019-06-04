@@ -45,18 +45,17 @@ enum Side {
 // We create an order for every trade request, even if it settles immediately,
 // in order to provide history and clean auditability of the market.
 message Order {
-  // Unique identifier of order
-  // bytes order_id = 1 [(gogoproto.customname) = "OrderID"];
-
+  weave.Metadata metadata = 1;
+  bytes id = 2 [(gogoproto.customname) = "ID"];
   // Address of trader that created order (ad gets paid from it)
-  bytes trader = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
-  bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
-  Side side = 4;
-  OrderState order_state = 5;
+  bytes trader = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes order_book_id = 4 [(gogoproto.customname) = "OrderBookID"];
+  Side side = 5;
+  OrderState order_state = 6;
   // The amount maker want to sell/buy
-  coin.Coin original_offer = 6;
+  coin.Coin original_offer = 7;
   // Remaning offer. (This part enables partially filled orders)
-  coin.Coin remaining_offer = 7;
+  coin.Coin remaining_offer = 8;
   // Price for each unit (in tickers of the opposite currency from our side)
   Amount price = 9;
   // Executed trades (referenced ids)
@@ -75,7 +74,7 @@ message Order {
 // Ask and Bid tickers are "inherited" from the orderbook
 message Trade {
   weave.Metadata metadata = 1;
-  // bytes trade_id = 2 [(gogoproto.customname) = "TradeId"];
+  bytes id = 2 [(gogoproto.customname) = "ID"];
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
   bytes order_id = 4 [(gogoproto.customname) = "OrderID"];
   // Address of taker (this is an order that was instantly fulfilled)
@@ -97,9 +96,7 @@ message Trade {
 // Orders and Trades must reference an orderbook and use those tickers as denominations
 message OrderBook {
   weave.Metadata metadata = 1;
-  // Unique identifier of orderbook
-  // bytes orderbook_id = 2 [(gogoproto.customname) = "OrderBookID"];
-
+  bytes id = 2 [(gogoproto.customname) = "ID"];
   bytes market_id = 3 [(gogoproto.customname) = "MarketID"];
   string ask_ticker = 4;
   string bid_ticker = 5;
@@ -116,12 +113,11 @@ message OrderBook {
 // Currently Markets can only be created in the genesis file
 message Market {
   weave.Metadata metadata = 1;
-  // bytes market_id = 2 [(gogoproto.customname) = "MarketID"];
-
+  bytes id = 2 [(gogoproto.customname) = "ID"];
   // Owner is allowed to create new orderbooks in this Market
-  bytes owner = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes owner = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // Market name
-  string name = 3;
+  string name = 4;
   // TODO add fee design
   // TODO add min and max amount
   // TODO add precision
