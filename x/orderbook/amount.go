@@ -13,3 +13,10 @@ func NewAmountp(whole int64, fractional int64) *Amount {
 		Fractional: fractional,
 	}
 }
+
+func (a *Amount) Clone() *Amount {
+	return &Amount{
+		Whole:      a.Whole,
+		Fractional: a.Fractional,
+	}
+}
