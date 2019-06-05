@@ -147,8 +147,12 @@ func (o *Order) Validate() error {
 	if err := o.RemainingOffer.Validate(); err != nil {
 		return errors.Wrap(err, "remaining offer")
 	}
-
-	// TODO: valid price
+	if err := o.Price.Validate(); err != nil {
+		return errors.Wrap(err, "price")
+	}
+	if !o.Price.IsPositive() {
+		return errors.Wrap(errors.ErrState, "price must be positive")
+	}
 	// TODO: valid trade ids (also rethink how we handle this? just use index and not in model?)
 
 	if err := o.UpdatedAt.Validate(); err != nil {
