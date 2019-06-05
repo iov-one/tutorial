@@ -135,8 +135,14 @@ func (o *Order) Validate() error {
 	}
 	// TODO: valid Side?
 	// TODO: valid OrderState?
+	if o.OriginalOffer == nil {
+		return errors.Wrap(errors.ErrEmpty, "original offer")
+	}
 	if err := o.OriginalOffer.Validate(); err != nil {
 		return errors.Wrap(err, "original offer")
+	}
+	if o.RemainingOffer == nil {
+		return errors.Wrap(errors.ErrEmpty, "remaining offer")
 	}
 	if err := o.RemainingOffer.Validate(); err != nil {
 		return errors.Wrap(err, "remaining offer")
@@ -203,8 +209,14 @@ func (o *Trade) Validate() error {
 	if err := o.Maker.Validate(); err != nil {
 		return errors.Wrap(err, "maker")
 	}
+	if o.MakerPaid == nil {
+		return errors.Wrap(errors.ErrEmpty, "maker paid")
+	}
 	if err := o.MakerPaid.Validate(); err != nil {
 		return errors.Wrap(err, "maker paid")
+	}
+	if o.TakerPaid == nil {
+		return errors.Wrap(errors.ErrEmpty, "maker paid")
 	}
 	if err := o.TakerPaid.Validate(); err != nil {
 		return errors.Wrap(err, "taker paid")
