@@ -92,13 +92,13 @@ func TestModelBucketByIndex(t *testing.T) {
 			QueryKey:  "1",
 			WantErr:   nil,
 			WantResPtr: []*Counter{
-				&Counter{
+				{
 					ID:    weavetest.SequenceID(1),
 					Count: 1001,
 				},
 			},
 			WantRes: []Counter{
-				Counter{
+				{
 					ID:    weavetest.SequenceID(1),
 					Count: 1001,
 				},
@@ -109,12 +109,12 @@ func TestModelBucketByIndex(t *testing.T) {
 			QueryKey:  "4",
 			WantErr:   nil,
 			WantResPtr: []*Counter{
-				&Counter{ID: weavetest.SequenceID(3), Count: 4001},
-				&Counter{ID: weavetest.SequenceID(4), Count: 4002},
+				{ID: weavetest.SequenceID(3), Count: 4001},
+				{ID: weavetest.SequenceID(4), Count: 4002},
 			},
 			WantRes: []Counter{
-				Counter{ID: weavetest.SequenceID(3), Count: 4001},
-				Counter{ID: weavetest.SequenceID(4), Count: 4002},
+				{ID: weavetest.SequenceID(3), Count: 4001},
+				{ID: weavetest.SequenceID(4), Count: 4002},
 			},
 		},
 		"non existing index name": {

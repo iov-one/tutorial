@@ -5,22 +5,22 @@ import (
 )
 
 // SetID is a minimal implementation, useful when the ID is a separate protobuf field
-func (c *Counter)SetID(id []byte) error {
+func (c *Counter) SetID(id []byte) error {
 	c.ID = id
 	return nil
 }
 
 // Copy produces a new copy to fulfill the Model interface
-func (c *Counter)Copy() orm.CloneableData {
+func (c *Counter) Copy() orm.CloneableData {
 	return &Counter{
-		ID: c.ID,
+		ID:    c.ID,
 		Count: c.Count,
 	}
 }
 
 // Validate is always succesful
-func (c *Counter)Validate() error {
+func (c *Counter) Validate() error {
 	return nil
 }
 
-var _  Model = (*Counter)(nil)
+var _ Model = (*Counter)(nil)
