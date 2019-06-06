@@ -77,7 +77,12 @@ func (m CreateOrderMsg) Validate() error {
 	if !m.Offer.IsPositive() {
 		return errors.Wrap(errors.ErrInput, "offer must be positive")
 	}
-	// TODO: validate Amount once we have code for Amount
+	if err := m.Price.Validate(); err != nil {
+		return errors.Wrap(err, "price")
+	}
+	if !m.Price.IsPositive() {
+		return errors.Wrap(errors.ErrInput, "price must be positive")
+	}
 	return nil
 }
 

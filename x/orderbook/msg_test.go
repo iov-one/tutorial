@@ -211,7 +211,26 @@ func TestValidateCreateOrderMsg(t *testing.T) {
 			},
 			wantErr: errors.ErrInput,
 		},
-		// TODO: bad price
+		"negative price": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(5, 0, "ETH"),
+				Price:       NewAmountp(-1, 0),
+			},
+			wantErr: errors.ErrInput,
+		},
+		"invalid price": {
+			msg: &CreateOrderMsg{
+				Metadata:    &weave.Metadata{Schema: 1},
+				Trader:      trader,
+				OrderBookID: weavetest.SequenceID(12345),
+				Offer:       coin.NewCoinp(5, 0, "ETH"),
+				Price:       NewAmountp(14, -20),
+			},
+			wantErr: errors.ErrState,
+		},
 	}
 
 	for testName, tc := range cases {
