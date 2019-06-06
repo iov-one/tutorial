@@ -133,8 +133,12 @@ func (o *Order) Validate() error {
 	if err := isGenID(o.OrderBookID, false); err != nil {
 		return errors.Wrap(err, "order book id")
 	}
-	// TODO: valid Side?
-	// TODO: valid OrderState?
+	if o.Side != Side_Ask && o.Side != Side_Bid {
+		return errors.Wrap(errors.ErrState, "side")
+	}
+	if o.OrderState != OrderState_Open && o.OrderState != OrderState_Done && o.OrderState != OrderState_Cancel {
+		return errors.Wrap(errors.ErrState, "order state")
+	}
 	if o.OriginalOffer == nil {
 		return errors.Wrap(errors.ErrEmpty, "original offer")
 	}
