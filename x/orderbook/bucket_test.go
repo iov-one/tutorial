@@ -1,7 +1,6 @@
 package orderbook
 
 import (
-	"encoding/binary"
 	"testing"
 	"time"
 
@@ -104,7 +103,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		UpdatedAt:      now,
 	}
 
-	successCaseExpectedValue := BuildOrderIndexTestCase(openOrder)
+	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 5, 1}
 
 	cases := map[string]struct {
 		obj      orm.Object
@@ -149,16 +148,6 @@ func TestOpenOrderIndexer(t *testing.T) {
 			assert.Equal(t, tc.expected, index)
 		})
 	}
-}
-
-func BuildOrderIndexTestCase(order *Order) []byte {
-	res := make([]byte, 9, 9+16)
-	copy(res, order.OrderBookID)
-	res[8] = byte(order.Side)
-	lex, _ := order.Price.Lexographic()
-	copy(res[9:], lex)
-
-	return res
 }
 
 func TestOrderIDindexer(t *testing.T) {
@@ -211,7 +200,7 @@ func TestOrderIDindexer(t *testing.T) {
 }
 
 func TestOrderBookTimedIndexer(t *testing.T) {
-	now := weave.AsUnixTime(time.Now())
+	now := weave.AsUnixTime(time.Unix(1, 0))
 	invalidTime := weave.AsUnixTime(time.Unix(-1, 0))
 
 	validTrade := &Trade{
@@ -236,7 +225,7 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 		ExecutedAt:  invalidTime,
 	}
 
-	successCaseExpectedValue := BuildOrderBookTimedIndexTestCase(validTrade)
+	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 1}
 
 	cases := map[string]struct {
 		obj      orm.Object
@@ -277,13 +266,4 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 			assert.Equal(t, tc.expected, index)
 		})
 	}
-}
-
-func BuildOrderBookTimedIndexTestCase(trade *Trade) []byte {
-	res := make([]byte, 16)
-
-	copy(res, trade.OrderID)
-	binary.BigEndian.PutUint64(res[8:], uint64(trade.ExecutedAt))
-
-	return res
 }
