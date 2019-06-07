@@ -72,7 +72,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		OrderState:     OrderState_Open,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
-		Price:          NewAmountp(121, 0),
+		Price:          NewAmountp(121, 2125),
 		CreatedAt:      onceUponATime,
 		UpdatedAt:      now,
 	}
@@ -85,7 +85,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		OrderState:     OrderState_Done,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
-		Price:          NewAmountp(121, 0),
+		Price:          NewAmountp(121, 2125),
 		CreatedAt:      onceUponATime,
 		UpdatedAt:      now,
 	}
@@ -98,12 +98,12 @@ func TestOpenOrderIndexer(t *testing.T) {
 		OrderState:     OrderState_Cancel,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
-		Price:          NewAmountp(121, 0),
+		Price:          NewAmountp(121, 2125),
 		CreatedAt:      onceUponATime,
 		UpdatedAt:      now,
 	}
 
-	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 5, 1}
+	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 0, 0, 0, 0, 0, 121, 0, 0, 0, 0, 0, 0, 8, 77}
 
 	cases := map[string]struct {
 		obj      orm.Object

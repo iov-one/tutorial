@@ -91,7 +91,7 @@ func BuildOpenOrderIndex(order *Order) ([]byte, error) {
 		return nil, nil
 	}
 
-	res := make([]byte, 9, 9+16)
+	res := make([]byte, 9+16)
 	copy(res, order.OrderBookID)
 	res[8] = byte(order.Side)
 	lex, err := order.Price.Lexographic()
