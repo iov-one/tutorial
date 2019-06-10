@@ -8,6 +8,11 @@ import (
 	"github.com/iov-one/weave/orm"
 )
 
+const (
+	// Assumed maximum ticker letter size is 5
+	tickerByteSize = 5
+)
+
 type MarketBucket struct {
 	morm.ModelBucket
 }
@@ -42,6 +47,39 @@ func marketIDindexer(obj orm.Object) ([]byte, error) {
 		return nil, errors.Wrapf(errors.ErrState, "expected orderbook, got %T", obj.Value())
 	}
 	return ob.MarketID, nil
+}
+
+// marketIDTickersIndexer produces in SQL parlance, a compound index
+// (MarketID, AskTicker, BidTicker) -> index
+func marketIDTickersIndexer(obj orm.Object) ([]byte, error) {
+	if obj == nil || obj.Value() == nil {
+		return nil, nil
+	}
+	orderbook, ok := obj.Value().(*OrderBook)
+
+	if !ok {
+		return nil, errors.Wrapf(errors.ErrState, "expected orderbook, got %T", obj.Value())
+	}
+
+	return BuildMarketIDTickersIndex(orderbook), nil
+}
+
+func BuildMarketIDTickersIndex(orderbook *OrderBook) ([]byte) {
+	
+	// 8(MarketID) + ask ticker size + bid ticker size
+	res := make([]byte, 8 + tickerByteSize * 2)
+
+	askTickerByte := make([]byte, tickerByteSize)
+	copy(askTickerByte, orderbook.AskTicker)
+
+	bidTickerByte := make([]byte, tickerByteSize)
+	copy(bidTickerByte, orderbook.BidTicker)
+
+	copy(res, orderbook.MarketID)
+	copy(res[8:], bidTickerByte)
+	copy(res[8 + tickerByteSize:], askTickerByte)
+
+	return res
 }
 
 type OrderBucket struct {

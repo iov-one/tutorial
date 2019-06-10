@@ -57,6 +57,69 @@ func TestMarketIDindexer(t *testing.T) {
 	}
 }
 
+func TestMarketIDTickersIndexer(t *testing.T) {
+	marketID := weavetest.SequenceID(5)
+
+	// Orderbook with 3 letter tickers
+	orderbook1 := &OrderBook{
+		Metadata:  &weave.Metadata{Schema: 1},
+		MarketID:  marketID,
+		AskTicker: "BAR",
+		BidTicker: "FOO",
+	}
+
+	expectedIndex1 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 66, 65, 82, 0, 0, 70, 79, 79, 0, 0}
+
+	// Orderbook with 4 letter tickers
+	orderbook2 := &OrderBook{
+		Metadata:  &weave.Metadata{Schema: 1},
+		MarketID:  marketID,
+		AskTicker: "BARZ",
+		BidTicker: "FOOL",
+	}
+
+	expectedIndex2 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 70, 79, 79, 76, 0, 66, 65, 82, 90, 0}
+
+	cases := map[string]struct {
+		obj      orm.Object
+		expected []byte
+		wantErr  *errors.Error
+	}{
+		"success, with 3 letter tickers": {
+			obj:      orm.NewSimpleObj(nil, orderbook1),
+			expected: expectedIndex1,
+			wantErr:  nil,
+		},
+		"success, with 4 letter tickers": {
+			obj:      orm.NewSimpleObj(nil, orderbook2),
+			expected: expectedIndex2,
+			wantErr:  nil,
+		},
+		"failure, obj is nil": {
+			obj:      nil,
+			expected: nil,
+			wantErr:  nil,
+		},
+		// TODO add obj.value nil case
+		"not orderbook": {
+			obj:      orm.NewSimpleObj(nil, new(Order)),
+			expected: nil,
+			wantErr:  errors.ErrState,
+		},
+	}
+
+	for testName, tc := range cases {
+		t.Run(testName, func(t *testing.T) {
+			index, err := marketIDTickersIndexer(tc.obj)
+
+			if !tc.wantErr.Is(err) {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+			assert.Equal(t, tc.expected, index)
+		})
+	}
+}
+
 func TestOpenOrderIndexer(t *testing.T) {
 	now := weave.AsUnixTime(time.Now())
 	onceUponATime := weave.AsUnixTime(time.Time{})
