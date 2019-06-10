@@ -64,20 +64,16 @@ func marketIDTickersIndexer(obj orm.Object) ([]byte, error) {
 	return BuildMarketIDTickersIndex(orderbook), nil
 }
 
-func BuildMarketIDTickersIndex(orderbook *OrderBook) ([]byte) {
-	
-	// 8(MarketID) + ask ticker size + bid ticker size
-	res := make([]byte, 8 + tickerByteSize * 2)
-
+// BuildMarketIDTickersIndex indexByteSize = 8(MarketID) + ask ticker size + bid ticker size
+func BuildMarketIDTickersIndex(orderbook *OrderBook) []byte {
 	askTickerByte := make([]byte, tickerByteSize)
 	copy(askTickerByte, orderbook.AskTicker)
 
 	bidTickerByte := make([]byte, tickerByteSize)
 	copy(bidTickerByte, orderbook.BidTicker)
 
-	copy(res, orderbook.MarketID)
-	copy(res[8:], bidTickerByte)
-	copy(res[8 + tickerByteSize:], askTickerByte)
+	res := append(orderbook.MarketID, askTickerByte...)
+	res = append(res, bidTickerByte...)
 
 	return res
 }

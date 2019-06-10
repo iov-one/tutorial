@@ -78,7 +78,7 @@ func TestMarketIDTickersIndexer(t *testing.T) {
 		BidTicker: "FOOL",
 	}
 
-	expectedIndex2 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 70, 79, 79, 76, 0, 66, 65, 82, 90, 0}
+	expectedIndex2 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 66, 65, 82, 90, 0, 70, 79, 79, 76, 0}
 
 	cases := map[string]struct {
 		obj      orm.Object
