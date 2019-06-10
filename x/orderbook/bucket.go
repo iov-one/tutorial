@@ -1,6 +1,7 @@
 package orderbook
 
 import (
+	"bytes"
 	"encoding/binary"
 
 	"github.com/iov-one/tutorial/morm"
@@ -28,10 +29,12 @@ type OrderBookBucket struct {
 	morm.ModelBucket
 }
 
+// NewOrderBookBucket initates orderbook with required indexes
+// TODO remove marketIDindexer if proven unnecessary
 func NewOrderBookBucket() *OrderBookBucket {
 	b := morm.NewModelBucket("orderbook", &OrderBook{},
 		morm.WithIndex("market", marketIDindexer, false),
-		morm.WithIndex("marketWithTickers", marketIDTickersIndexer, false),
+		morm.WithIndex("marketWithTickers", marketIDTickersIndexer, true),
 	)
 	return &OrderBookBucket{
 		ModelBucket: b,
@@ -39,6 +42,8 @@ func NewOrderBookBucket() *OrderBookBucket {
 }
 
 // marketIDindexer indexes by market id to easily query all books on one market
+// This index is somewhat redundant. In future could be removed if we can provide
+// still usable client-side API without this
 func marketIDindexer(obj orm.Object) ([]byte, error) {
 	if obj == nil || obj.Value() == nil {
 		return nil, nil
@@ -73,10 +78,7 @@ func BuildMarketIDTickersIndex(orderbook *OrderBook) []byte {
 	bidTickerByte := make([]byte, tickerByteSize)
 	copy(bidTickerByte, orderbook.BidTicker)
 
-	res := append(orderbook.MarketID, askTickerByte...)
-	res = append(res, bidTickerByte...)
-
-	return res
+	return bytes.Join([][]byte{orderbook.MarketID, askTickerByte, bidTickerByte}, nil)
 }
 
 type OrderBucket struct {
