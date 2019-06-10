@@ -22,7 +22,7 @@ func RegisterQuery(qr weave.QueryRouter) {
 func RegisterRoutes(r weave.Registry, auth x.Authenticator, issuer weave.Address) {
 	r = migration.SchemaMigratingRegistry(packageName, r)
 
-	r.Handle(CreateOrderBookMsg.Path(), NewOrderBookHandler(auth, issuer))
+	r.Handle(CreateOrderBookMsg{}.Path(), NewOrderBookHandler(auth, issuer))
 }
 
 // ------------------- ORDERBOOK HANDLER -------------------
@@ -40,7 +40,7 @@ var _ weave.Handler = OrderBookHandler{}
 // NewOrderBookHandler creates a handler that allows issuer to
 // create orderbooks. Only owner/admin of the market can issue
 // new orderbooks
-func (h *OrderBookHandler) NewOrderBookHandler(auth x.Authenticator, issuer weave.Address) weave.Handler {
+func NewOrderBookHandler(auth x.Authenticator, issuer weave.Address) weave.Handler {
 	return OrderBookHandler{
 		auth:            auth,
 		issuer:          issuer,
