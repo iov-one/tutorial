@@ -22,9 +22,7 @@ func RegisterQuery(qr weave.QueryRouter) {
 func RegisterRoutes(r weave.Registry, auth x.Authenticator, issuer weave.Address) {
 	r = migration.SchemaMigratingRegistry(packageName, r)
 
-	//	r.Handle(CreateOrderBookMsg.Path(), )
-
-	// We do NOT register the TextResultionHandler here... this is only for the proposal Executor
+	r.Handle(CreateOrderBookMsg.Path(), NewOrderBookHandler(auth, issuer))
 }
 
 // ------------------- ORDERBOOK HANDLER -------------------
@@ -75,24 +73,32 @@ func (h OrderBookHandler) validate(ctx weave.Context, db weave.KVStore, tx weave
 		return nil, errors.Wrapf(errors.ErrUnauthorized, "Orderbook only created by %s", h.issuer)
 	}
 
-	var Market Market
-
-	err := h.marketBucket.One(db, msg.MarketID, &Market)
-	if err != nil {
-		return nil, err
-	}
-
-	//obj, err := h.bucket.Get(db, msg.Ticker)
-	if err != nil {
-		return nil, err
-	}
-
 	return &msg, nil
 }
 
+// Deliver creates an orderbook and saves if all preconditions are met
 func (h OrderBookHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.DeliverResult, error) {
 	msg, err := h.validate(ctx, db, tx)
 	if err != nil {
+		return nil, err
+	}
+
+	// Check market with msg.MarketID exists
+	if err := h.marketBucket.Has(db, msg.MarketID); err != nil {
+		return nil, err
+	}
+
+	//make the orderbook
+	orderbook := &OrderBook{
+		Metadata:      &weave.Metadata{},
+		MarketID:      msg.MarketID,
+		AskTicker:     msg.AskTicker,
+		BidTicker:     msg.BidTicker,
+		TotalAskCount: 0,
+		TotalBidCount: 0,
+	}
+
+	if err := h.orderBookBucket.Put(db, orderbook); err != nil {
 		return nil, err
 	}
 
