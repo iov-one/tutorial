@@ -1,11 +1,17 @@
 package orderbook
 
 import (
+	"bytes"
 	"encoding/binary"
 
 	"github.com/iov-one/tutorial/morm"
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/orm"
+)
+
+const (
+	// Assumed maximum ticker letter size is 5
+	tickerByteSize = 5
 )
 
 type MarketBucket struct {
@@ -23,9 +29,12 @@ type OrderBookBucket struct {
 	morm.ModelBucket
 }
 
+// NewOrderBookBucket initates orderbook with required indexes/
+// TODO remove marketIDindexer if proven unnecessary
 func NewOrderBookBucket() *OrderBookBucket {
 	b := morm.NewModelBucket("orderbook", &OrderBook{},
 		morm.WithIndex("market", marketIDindexer, false),
+		morm.WithIndex("marketWithTickers", marketIDTickersIndexer, true),
 	)
 	return &OrderBookBucket{
 		ModelBucket: b,
@@ -33,6 +42,8 @@ func NewOrderBookBucket() *OrderBookBucket {
 }
 
 // marketIDindexer indexes by market id to easily query all books on one market
+// This index is somewhat redundant. In future could be removed if we can provide
+// still usable client-side API without this
 func marketIDindexer(obj orm.Object) ([]byte, error) {
 	if obj == nil || obj.Value() == nil {
 		return nil, nil
@@ -42,6 +53,32 @@ func marketIDindexer(obj orm.Object) ([]byte, error) {
 		return nil, errors.Wrapf(errors.ErrState, "expected orderbook, got %T", obj.Value())
 	}
 	return ob.MarketID, nil
+}
+
+// marketIDTickersIndexer produces in SQL parlance, a compound index
+// (MarketID, AskTicker, BidTicker) -> index
+func marketIDTickersIndexer(obj orm.Object) ([]byte, error) {
+	if obj == nil || obj.Value() == nil {
+		return nil, nil
+	}
+	orderbook, ok := obj.Value().(*OrderBook)
+
+	if !ok {
+		return nil, errors.Wrapf(errors.ErrState, "expected orderbook, got %T", obj.Value())
+	}
+
+	return BuildMarketIDTickersIndex(orderbook), nil
+}
+
+// BuildMarketIDTickersIndex indexByteSize = 8(MarketID) + ask ticker size + bid ticker size
+func BuildMarketIDTickersIndex(orderbook *OrderBook) []byte {
+	askTickerByte := make([]byte, tickerByteSize)
+	copy(askTickerByte, orderbook.AskTicker)
+
+	bidTickerByte := make([]byte, tickerByteSize)
+	copy(bidTickerByte, orderbook.BidTicker)
+
+	return bytes.Join([][]byte{orderbook.MarketID, askTickerByte, bidTickerByte}, nil)
 }
 
 type OrderBucket struct {
