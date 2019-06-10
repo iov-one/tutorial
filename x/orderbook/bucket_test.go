@@ -80,6 +80,16 @@ func TestMarketIDTickersIndexer(t *testing.T) {
 
 	expectedIndex2 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 66, 65, 82, 90, 0, 70, 79, 79, 76, 0}
 
+	// Orderbook with 5 letter tickers
+	orderbook3 := &OrderBook{
+		Metadata:  &weave.Metadata{Schema: 1},
+		MarketID:  marketID,
+		AskTicker: "BARZO",
+		BidTicker: "FOOLO",
+	}
+
+	expectedIndex3 := []byte{0, 0, 0, 0, 0, 0, 0, 5, 66, 65, 82, 90, 79, 70, 79, 79, 76, 79}
+
 	cases := map[string]struct {
 		obj      orm.Object
 		expected []byte
@@ -93,6 +103,11 @@ func TestMarketIDTickersIndexer(t *testing.T) {
 		"success, with 4 letter tickers": {
 			obj:      orm.NewSimpleObj(nil, orderbook2),
 			expected: expectedIndex2,
+			wantErr:  nil,
+		},
+		"success, with 5 letter tickers": {
+			obj:      orm.NewSimpleObj(nil, orderbook3),
+			expected: expectedIndex3,
 			wantErr:  nil,
 		},
 		"failure, obj is nil": {
