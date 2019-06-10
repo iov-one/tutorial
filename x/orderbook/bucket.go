@@ -31,6 +31,7 @@ type OrderBookBucket struct {
 func NewOrderBookBucket() *OrderBookBucket {
 	b := morm.NewModelBucket("orderbook", &OrderBook{},
 		morm.WithIndex("market", marketIDindexer, false),
+		morm.WithIndex("marketWithTickers", marketIDTickersIndexer, false),
 	)
 	return &OrderBookBucket{
 		ModelBucket: b,
