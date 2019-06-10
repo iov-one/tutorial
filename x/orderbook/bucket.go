@@ -29,7 +29,7 @@ type OrderBookBucket struct {
 	morm.ModelBucket
 }
 
-// NewOrderBookBucket initates orderbook with required indexes
+// NewOrderBookBucket initates orderbook with required indexes/
 // TODO remove marketIDindexer if proven unnecessary
 func NewOrderBookBucket() *OrderBookBucket {
 	b := morm.NewModelBucket("orderbook", &OrderBook{},
