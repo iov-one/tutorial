@@ -41,6 +41,9 @@ test-verbose:
 	go vet ./...
 	go test -v -race ./...
 
+mod:
+	go mod tidy
+
 cover:
 	go test -covermode=$(MODE) -coverprofile=coverage/coverage.txt ./...
 

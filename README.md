@@ -17,7 +17,7 @@ fair bit of data modelling. Let us build a custom module to handle trading,
 and then integrate it with all the useful modules that weave gives us
 for free. At the end we have a useful custom application, our own DEX.
 
-A further tutorial will explain how to use 
+A further tutorial will explain how to use
 [iov core](https://github.com/iov-one/iov-core) to build your own frontend
 application with secure key management, to interact with this DEX.
 
@@ -26,3 +26,10 @@ application with secure key management, to interact with this DEX.
 **TODO**
 
 `make all` will test and build the application.
+
+## Working with go.mod
+
+To keep the CI deterministic, `make build`, `make install`, and `make test` all use the `-mod=readonly` flag,
+which doesn't update any dependencies. If you want to update some deps locally, change the versions
+in `go.mod`, run `make mod` to "tidy up" the mod file, and then run tests with `make tf`,
+to update `go.sum` appropriately.
