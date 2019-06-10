@@ -6,7 +6,7 @@ export GO111MODULE := on
 # for building out the mycoind app
 BUILDOUT ?= mycoind
 BUILD_VERSION ?= $(shell git describe --tags)
-BUILD_FLAGS := -ldflags "-X github.com/iov-one/weave.Version=$(BUILD_VERSION)"
+BUILD_FLAGS := -mod=readonly -ldflags "-X github.com/iov-one/weave.Version=$(BUILD_VERSION)"
 
 # MODE=count records heat map in test coverage
 # MODE=set just records which lines were hit by one test
@@ -30,8 +30,8 @@ install:
 	go install $(BUILD_FLAGS) ./cmd/mycoind
 
 test:
-	go vet ./...
-	go test -race ./...
+	go vet -mod=readonly ./...
+	go test -mod=readonly -race ./...
 
 # Test fast
 tf:
@@ -40,6 +40,9 @@ tf:
 test-verbose:
 	go vet ./...
 	go test -v -race ./...
+
+mod:
+	go mod tidy
 
 cover:
 	go test -covermode=$(MODE) -coverprofile=coverage/coverage.txt ./...
