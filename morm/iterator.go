@@ -5,6 +5,7 @@ import (
 
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/errors"
+	"github.com/iov-one/weave/orm"
 )
 
 type ModelIterator interface {
@@ -48,14 +49,74 @@ func (i *idModelIterator) Close() {
 }
 
 func (i *idModelIterator) Load(dest Model) error {
-	key := i.iterator.Key()
-	value := i.iterator.Value()
+	return load(i.iterator.Key(), i.iterator.Value(), i.bucketPrefix, dest)
+}
 
+type indexModelIterator struct {
+	// this is the raw KVStoreIterator
+	iterator weave.Iterator
+	// this is the bucketPrefix to strip from each key
+	bucketPrefix []byte
+	unique       bool
+
+	kv weave.ReadOnlyKVStore
+}
+
+var _ ModelIterator = (*indexModelIterator)(nil)
+
+func (i *indexModelIterator) Valid() bool {
+	return i.iterator.Valid()
+}
+
+func (i *indexModelIterator) Next() error {
+	return i.iterator.Next()
+}
+
+func (i *indexModelIterator) Close() {
+	i.iterator.Close()
+}
+
+// get refs takes a value stored in an index and parse it into a slice of
+// db keys
+func (i *indexModelIterator) getRefs(val []byte, unique bool) ([][]byte, error) {
+	if val == nil {
+		return nil, nil
+	}
+	if unique {
+		return [][]byte{val}, nil
+	}
+	var data = new(orm.MultiRef)
+	err := data.Unmarshal(val)
+	if err != nil {
+		return nil, err
+	}
+	return data.GetRefs(), nil
+}
+
+func (i *indexModelIterator) Load(dest Model) error {
+	keys, err := i.getRefs(i.iterator.Value(), i.unique)
+	if err != nil {
+		return errors.Wrap(err, "parsing index refs")
+	}
+
+	// TODO: handle when there is more than one
+	if len(keys) != 1 {
+		panic("not yet implemented")
+	}
+
+	val, err := i.kv.Get(keys[0])
+	if err != nil {
+		return errors.Wrap(err, "loading referenced key")
+	}
+	return load(keys[0], val, i.bucketPrefix, dest)
+}
+
+func load(key, value, bucketPrefix []byte, dest Model) error {
 	// since we use raw kvstore here, not Bucket, we must remove the bucket prefix manually
-	if !bytes.HasPrefix(key, i.bucketPrefix) {
+	if !bytes.HasPrefix(key, bucketPrefix) {
 		return errors.Wrapf(errors.ErrDatabase, "key with unexpected prefix: %X", key)
 	}
-	key = key[len(i.bucketPrefix):]
+	key = key[len(bucketPrefix):]
 
 	if err := dest.Unmarshal(value); err != nil {
 		return errors.Wrapf(err, "unmarshaling into %T", dest)

@@ -98,9 +98,10 @@ func NewModelBucket(name string, m Model, opts ...ModelBucketOption) ModelBucket
 	}
 
 	mb := &modelBucket{
-		b:     b,
-		idSeq: b.Sequence("id"),
-		model: tp,
+		b:          b,
+		idSeq:      b.Sequence("id"),
+		model:      tp,
+		bucketName: name,
 	}
 	for _, fn := range opts {
 		fn(mb)
@@ -112,6 +113,13 @@ func NewModelBucket(name string, m Model, opts ...ModelBucketOption) ModelBucket
 // ModelBucket during creation.
 type ModelBucketOption func(mb *modelBucket)
 
+type indexInfo struct {
+	name string
+	// prefix is the kvstore prefix used for all items in the index
+	prefix []byte
+	unique bool
+}
+
 // WithIndex configures the bucket to build an index with given name. All
 // entities stored in the bucket are indexed using value returned by the
 // indexer function. If an index is unique, there can be only one entity
@@ -119,12 +127,27 @@ type ModelBucketOption func(mb *modelBucket)
 func WithIndex(name string, indexer orm.Indexer, unique bool) ModelBucketOption {
 	return func(mb *modelBucket) {
 		mb.b = mb.b.WithIndex(name, indexer, unique)
+		// Until we get better integration with orm, we need to store some info ourselves here...
+		info := indexInfo{
+			name:   name,
+			prefix: indexPrefix(mb.bucketName, name),
+			unique: unique,
+		}
+		mb.indices = append(mb.indices, info)
 	}
+}
+
+func indexPrefix(bucketName, indexName string) []byte {
+	path := "_i." + bucketName + "_" + indexName + ":"
+	return []byte(path)
 }
 
 type modelBucket struct {
 	b     orm.Bucket
 	idSeq orm.Sequence
+
+	bucketName string
+	indices    []indexInfo
 
 	// model is referencing the structure type. Event if the structure
 	// pointer is implementing Model interface, this variable references
@@ -174,6 +197,42 @@ func (mb *modelBucket) PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, rever
 	}
 
 	return &idModelIterator{iterator: rawIter, bucketPrefix: mb.b.DBKey(nil)}, nil
+}
+
+func (mb *modelBucket) getIndexInfo(name string) *indexInfo {
+	for _, info := range mb.indices {
+		if info.name == name {
+			return &info
+		}
+	}
+	return nil
+}
+
+func (mb *modelBucket) IndexScan(db weave.ReadOnlyKVStore, indexName string, prefix []byte, reverse bool) (ModelIterator, error) {
+	// get index
+	info := mb.getIndexInfo(indexName)
+	if info == nil {
+		return nil, errors.Wrapf(errors.ErrDatabase, "no index with name %s", indexName)
+	}
+
+	dbPrefix := append(info.prefix, prefix...)
+	start, end := prefixRange(dbPrefix)
+
+	var rawIter weave.Iterator
+	var err error
+	if reverse {
+		rawIter, err = db.ReverseIterator(start, end)
+		if err != nil {
+			return nil, errors.Wrap(err, "reverse prefix scan")
+		}
+	} else {
+		rawIter, err = db.Iterator(start, end)
+		if err != nil {
+			return nil, errors.Wrap(err, "prefix scan")
+		}
+	}
+
+	return &indexModelIterator{iterator: rawIter, bucketPrefix: mb.b.DBKey(nil), unique: info.unique}, nil
 }
 
 func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) error {
