@@ -59,7 +59,8 @@ type indexModelIterator struct {
 	bucketPrefix []byte
 	unique       bool
 
-	kv weave.ReadOnlyKVStore
+	kv         weave.ReadOnlyKVStore
+	cachedKeys [][]byte
 }
 
 var _ ModelIterator = (*indexModelIterator)(nil)
@@ -69,6 +70,11 @@ func (i *indexModelIterator) Valid() bool {
 }
 
 func (i *indexModelIterator) Next() error {
+	if len(i.cachedKeys) > 1 {
+		i.cachedKeys = i.cachedKeys[1:]
+		return nil
+	}
+	i.cachedKeys = nil
 	return i.iterator.Next()
 }
 
@@ -98,16 +104,21 @@ func (i *indexModelIterator) dbKey(key []byte) []byte {
 }
 
 func (i *indexModelIterator) Load(dest Model) error {
-	keys, err := i.getRefs(i.iterator.Value(), i.unique)
-	if err != nil {
-		return errors.Wrap(err, "parsing index refs")
-	}
+	var key []byte
+	// if we have cached keys, just use those, not the iterator value
+	if len(i.cachedKeys) > 0 {
+		key = i.dbKey(i.cachedKeys[0])
+	} else {
+		keys, err := i.getRefs(i.iterator.Value(), i.unique)
+		if err != nil {
+			return errors.Wrap(err, "parsing index refs")
+		}
 
-	// TODO: handle when there is more than one
-	if len(keys) != 1 {
-		panic("not yet implemented")
+		if len(keys) != 1 {
+			i.cachedKeys = keys
+		}
+		key = i.dbKey(keys[0])
 	}
-	key := i.dbKey(keys[0])
 
 	val, err := i.kv.Get(key)
 	if err != nil {
