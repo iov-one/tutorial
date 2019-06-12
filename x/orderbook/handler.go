@@ -19,10 +19,10 @@ func RegisterQuery(qr weave.QueryRouter) {
 }
 
 // RegisterRoutes registers handlers for orderbook message processing.
-func RegisterRoutes(r weave.Registry, auth x.Authenticator, issuer weave.Address) {
+func RegisterRoutes(r weave.Registry, auth x.Authenticator) {
 	r = migration.SchemaMigratingRegistry(packageName, r)
 
-	r.Handle(CreateOrderBookMsg{}.Path(), NewOrderBookHandler(auth, issuer))
+	r.Handle(CreateOrderBookMsg{}.Path(), NewOrderBookHandler(auth))
 }
 
 // ------------------- ORDERBOOK HANDLER -------------------
@@ -30,7 +30,6 @@ func RegisterRoutes(r weave.Registry, auth x.Authenticator, issuer weave.Address
 // OrderBookHandler will handle creating orderbooks
 type OrderBookHandler struct {
 	auth            x.Authenticator
-	issuer          weave.Address
 	orderBookBucket *OrderBookBucket
 	marketBucket    *MarketBucket
 }
@@ -40,10 +39,9 @@ var _ weave.Handler = OrderBookHandler{}
 // NewOrderBookHandler creates a handler that allows issuer to
 // create orderbooks. Only owner/admin of the market can issue
 // new orderbooks
-func NewOrderBookHandler(auth x.Authenticator, issuer weave.Address) weave.Handler {
+func NewOrderBookHandler(auth x.Authenticator) weave.Handler {
 	return OrderBookHandler{
 		auth:            auth,
-		issuer:          issuer,
 		orderBookBucket: NewOrderBookBucket(),
 		marketBucket:    NewMarketBucket(),
 	}
