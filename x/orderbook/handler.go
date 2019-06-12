@@ -68,9 +68,15 @@ func (h OrderBookHandler) validate(ctx weave.Context, db weave.KVStore, tx weave
 		return nil, errors.Wrap(err, "load msg")
 	}
 
-	// Make sure we have permission if the issuer is set.
-	if h.issuer == nil || !h.auth.HasAddress(ctx, h.issuer) {
-		return nil, errors.Wrapf(errors.ErrUnauthorized, "Orderbook only created by %s", h.issuer)
+	// Check market with msg.MarketID exists
+	var market Market
+	if err := h.marketBucket.One(db, msg.MarketID, &market); err != nil {
+		return nil, err
+	}
+
+	// And ensure the owner has authorized this change
+	if !h.auth.HasAddress(ctx, market.Owner) {
+		return nil, errors.Wrap(errors.ErrUnauthorized, "only market owner can create orderbook")
 	}
 
 	return &msg, nil
@@ -80,11 +86,6 @@ func (h OrderBookHandler) validate(ctx weave.Context, db weave.KVStore, tx weave
 func (h OrderBookHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.DeliverResult, error) {
 	msg, err := h.validate(ctx, db, tx)
 	if err != nil {
-		return nil, err
-	}
-
-	// Check market with msg.MarketID exists
-	if err := h.marketBucket.Has(db, msg.MarketID); err != nil {
 		return nil, err
 	}
 
@@ -98,9 +99,11 @@ func (h OrderBookHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.
 		TotalBidCount: 0,
 	}
 
+	// the unique index "marketWithTickers" ensures there are no duplicates, would return error here
 	if err := h.orderBookBucket.Put(db, orderbook); err != nil {
 		return nil, err
 	}
 
-	return &weave.DeliverResult{}, err
+	// we return the new id on creation to enable easier queries
+	return &weave.DeliverResult{Data: orderbook.ID}, err
 }
