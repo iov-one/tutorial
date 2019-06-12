@@ -1,6 +1,8 @@
 package morm
 
 import (
+	"bytes"
+
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/errors"
 )
@@ -25,7 +27,10 @@ type ModelIterator interface {
 }
 
 type idModelIterator struct {
+	// this is the raw KVStoreIterator
 	iterator weave.Iterator
+	// this is the bucketPrefix to strip from each key
+	bucketPrefix []byte
 }
 
 var _ ModelIterator = (*idModelIterator)(nil)
@@ -45,6 +50,12 @@ func (i *idModelIterator) Close() {
 func (i *idModelIterator) Load(dest Model) error {
 	key := i.iterator.Key()
 	value := i.iterator.Value()
+
+	// since we use raw kvstore here, not Bucket, we must remove the bucket prefix manually
+	if !bytes.HasPrefix(key, i.bucketPrefix) {
+		return errors.Wrapf(errors.ErrDatabase, "key with unexpected prefix: %X", key)
+	}
+	key = key[len(i.bucketPrefix):]
 
 	if err := dest.Unmarshal(value); err != nil {
 		return errors.Wrapf(err, "unmarshaling into %T", dest)

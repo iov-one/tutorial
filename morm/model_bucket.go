@@ -52,7 +52,7 @@ type ModelBucket interface {
 	// The function returns a (possibly empty) iterator, which can
 	// load each model as it arrives.
 	// If reverse is true, iterates in descending order (highest value first),
-	// otherwise, it iterates in ascending order
+	// otherwise, it iterates in
 	PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, reverse bool) (ModelIterator, error)
 
 	// ByIndex returns all objects that secondary index with given name and
@@ -160,7 +160,7 @@ func (mb *modelBucket) PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, rever
 	var rawIter weave.Iterator
 	var err error
 
-	start, end := prefixRange(prefix)
+	start, end := prefixRange(mb.b.DBKey(prefix))
 	if reverse {
 		rawIter, err = db.ReverseIterator(start, end)
 		if err != nil {
@@ -173,7 +173,7 @@ func (mb *modelBucket) PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, rever
 		}
 	}
 
-	return &idModelIterator{iterator: rawIter}, nil
+	return &idModelIterator{iterator: rawIter, bucketPrefix: mb.b.DBKey(nil)}, nil
 }
 
 func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) error {

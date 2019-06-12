@@ -71,6 +71,41 @@ func TestModelBucketPutSequence(t *testing.T) {
 	assert.Equal(t, int64(222), c2.Count)
 }
 
+func TestModelBucketPrefixScan(t *testing.T) {
+	db := store.MemStore()
+
+	b := NewModelBucket("cnts", &Counter{})
+
+	cnts := []Counter{
+		Counter{Count: 1},
+		Counter{Count: 17},
+		Counter{Count: 11},
+		Counter{Count: 3},
+	}
+	for i := range cnts {
+		// make sure we point to value in array, so this ID gets set
+		err := b.Put(db, &cnts[i])
+		assert.Nil(t, err)
+	}
+
+	var loaded Counter
+	iter, err := b.PrefixScan(db, nil, false)
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	assert.Equal(t, cnts[0], loaded)
+
+	err = iter.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	assert.Equal(t, cnts[1], loaded)
+
+	iter.Close()
+}
+
 func TestModelBucketByIndex(t *testing.T) {
 	cases := map[string]struct {
 		IndexName  string
