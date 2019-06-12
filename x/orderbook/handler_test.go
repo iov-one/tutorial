@@ -22,17 +22,14 @@ func TestCreateOrderbook(t *testing.T) {
 	meta := &weave.Metadata{Schema: 1}
 
 	market := &Market{
-		// TODO: handle this in the bucket?
-		Metadata: meta,
-		ID:       weavetest.SequenceID(1),
-		Name:     "Main",
-		Owner:    perm.Address(),
+		ID:    weavetest.SequenceID(1),
+		Name:  "Main",
+		Owner: perm.Address(),
 	}
 	market2 := &Market{
-		Metadata: meta,
-		ID:       weavetest.SequenceID(2),
-		Name:     "Copycat",
-		Owner:    perm2.Address(),
+		ID:    weavetest.SequenceID(2),
+		Name:  "Copycat",
+		Owner: perm2.Address(),
 	}
 
 	cases := map[string]struct {
