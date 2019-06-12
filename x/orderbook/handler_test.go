@@ -69,7 +69,7 @@ func TestCreateOrderbook(t *testing.T) {
 				BidTicker: "ETH",
 			},
 			expected: &OrderBook{
-				Metadata:  meta,
+				Metadata:  &weave.Metadata{},
 				ID:        weavetest.SequenceID(1),
 				MarketID:  market.ID,
 				AskTicker: "BTC",
@@ -87,6 +87,42 @@ func TestCreateOrderbook(t *testing.T) {
 			wantCheckErr:   errors.ErrCurrency,
 			wantDeliverErr: errors.ErrCurrency,
 		},
+		"matching orderbook already exists": {
+			signers: []weave.Condition{perm},
+			initOrderbooks: []OrderBook{{
+				MarketID:  market.ID,
+				AskTicker: "BAR",
+				BidTicker: "FOO",
+			}},
+			msg: &CreateOrderBookMsg{
+				Metadata:  meta,
+				MarketID:  market.ID,
+				AskTicker: "BAR",
+				BidTicker: "FOO",
+			},
+			wantDeliverErr: errors.ErrDuplicate,
+		},
+		"matching orderbook already exists in other market": {
+			signers: []weave.Condition{perm},
+			initOrderbooks: []OrderBook{{
+				MarketID:  market2.ID,
+				AskTicker: "BAR",
+				BidTicker: "FOO",
+			}},
+			msg: &CreateOrderBookMsg{
+				Metadata:  meta,
+				MarketID:  market.ID,
+				AskTicker: "BAR",
+				BidTicker: "FOO",
+			},
+			expected: &OrderBook{
+				Metadata:  &weave.Metadata{},
+				ID:        weavetest.SequenceID(2),
+				MarketID:  market.ID,
+				AskTicker: "BAR",
+				BidTicker: "FOO",
+			},
+		},
 	}
 
 	for testName, tc := range cases {
@@ -97,21 +133,35 @@ func TestCreateOrderbook(t *testing.T) {
 			kv := store.MemStore()
 			migration.MustInitPkg(kv, packageName)
 
+			// initialize markets and orderbooks for test state
 			bucket := NewMarketBucket()
 			err := bucket.Put(kv, market)
 			assert.Nil(t, err)
 			err = bucket.Put(kv, market2)
 			assert.Nil(t, err)
 
-			// TODO: initialize orderbooks
+			orders := NewOrderBookBucket()
+			for _, ob := range tc.initOrderbooks {
+				err := orders.Put(kv, &ob)
+				assert.Nil(t, err)
+			}
 
 			tx := &weavetest.Tx{Msg: tc.msg}
 
 			if _, err := h.Check(nil, kv, tx); !tc.wantCheckErr.Is(err) {
 				t.Fatalf("unexpected check error: %+v", err)
 			}
-			if _, err := h.Deliver(nil, kv, tx); !tc.wantDeliverErr.Is(err) {
+			dres, err := h.Deliver(nil, kv, tx)
+			if !tc.wantDeliverErr.Is(err) {
 				t.Fatalf("unexpected deliver error: %+v", err)
+			}
+
+			// TODO: check expected
+			if tc.expected != nil {
+				var stored OrderBook
+				err = orders.One(kv, dres.Data, &stored)
+				assert.Nil(t, err)
+				assert.Equal(t, tc.expected, &stored)
 			}
 		})
 	}
