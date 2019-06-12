@@ -1,6 +1,7 @@
 package morm
 
 import (
+	"encoding/binary"
 	"strconv"
 	"testing"
 
@@ -104,6 +105,84 @@ func TestModelBucketPrefixScan(t *testing.T) {
 	assert.Equal(t, cnts[1], loaded)
 
 	iter.Close()
+
+	// validate reverse also works
+	iter, err = b.PrefixScan(db, nil, true)
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	assert.Equal(t, cnts[len(cnts)-1], loaded)
+	iter.Close()
+
+}
+
+func TestModelBucketIndexScanUnique(t *testing.T) {
+	db := store.MemStore()
+
+	lexographicCountIndex := func(obj orm.Object) ([]byte, error) {
+		c, ok := obj.Value().(*Counter)
+		if !ok {
+			return nil, errors.Wrapf(errors.ErrType, "%T", obj.Value())
+		}
+		res := make([]byte, 8)
+		binary.BigEndian.PutUint64(res, uint64(c.Count))
+		return res, nil
+	}
+
+	b := NewModelBucket("cnts", &Counter{}, WithIndex("counter", lexographicCountIndex, true))
+
+	cnts := []Counter{
+		Counter{Count: 1},
+		Counter{Count: 17},
+		Counter{Count: 93},
+		Counter{Count: 3},
+		Counter{Count: 8},
+	}
+	for i := range cnts {
+		// make sure we point to value in array, so this ID gets set
+		err := b.Put(db, &cnts[i])
+		assert.Nil(t, err)
+	}
+
+	var loaded Counter
+	iter, err := b.IndexScan(db, "counter", nil, false)
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	// should get lowest value
+	assert.Equal(t, Counter{ID: weavetest.SequenceID(1), Count: 1}, loaded)
+
+	err = iter.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	// should get second-lowest value
+	assert.Equal(t, Counter{ID: weavetest.SequenceID(4), Count: 3}, loaded)
+
+	iter.Close()
+
+	// validate reverse also works
+	iter, err = b.IndexScan(db, "counter", nil, true)
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	// should get highest value
+	assert.Equal(t, Counter{ID: weavetest.SequenceID(3), Count: 93}, loaded)
+
+	err = iter.Next()
+	assert.Nil(t, err)
+	assert.Equal(t, true, iter.Valid())
+	err = iter.Load(&loaded)
+	assert.Nil(t, err)
+	// should get second-highest value
+	assert.Equal(t, Counter{ID: weavetest.SequenceID(2), Count: 17}, loaded)
+
+	iter.Close()
+
 }
 
 func TestModelBucketByIndex(t *testing.T) {

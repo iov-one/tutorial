@@ -63,6 +63,10 @@ type ModelBucket interface {
 	// modified.
 	ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, dest ModelSlicePtr) error
 
+	// IndexScan does a PrefixScan, but on the named index. This would let us eg. load all counters
+	// in order of their count. Or easily find the lowest or highest count.
+	IndexScan(db weave.ReadOnlyKVStore, indexName string, prefix []byte, reverse bool) (ModelIterator, error)
+
 	// Put saves given model in the database. Before inserting into
 	// database, model is validated using its Validate method.
 	// If the key is nil or zero length then a sequence generator is used
@@ -232,7 +236,12 @@ func (mb *modelBucket) IndexScan(db weave.ReadOnlyKVStore, indexName string, pre
 		}
 	}
 
-	return &indexModelIterator{iterator: rawIter, bucketPrefix: mb.b.DBKey(nil), unique: info.unique}, nil
+	return &indexModelIterator{
+		iterator:     rawIter,
+		bucketPrefix: mb.b.DBKey(nil),
+		unique:       info.unique,
+		kv:           db,
+	}, nil
 }
 
 func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) error {

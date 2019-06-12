@@ -93,6 +93,10 @@ func (i *indexModelIterator) getRefs(val []byte, unique bool) ([][]byte, error) 
 	return data.GetRefs(), nil
 }
 
+func (i *indexModelIterator) dbKey(key []byte) []byte {
+	return append(i.bucketPrefix, key...)
+}
+
 func (i *indexModelIterator) Load(dest Model) error {
 	keys, err := i.getRefs(i.iterator.Value(), i.unique)
 	if err != nil {
@@ -103,12 +107,16 @@ func (i *indexModelIterator) Load(dest Model) error {
 	if len(keys) != 1 {
 		panic("not yet implemented")
 	}
+	key := i.dbKey(keys[0])
 
-	val, err := i.kv.Get(keys[0])
+	val, err := i.kv.Get(key)
 	if err != nil {
 		return errors.Wrap(err, "loading referenced key")
 	}
-	return load(keys[0], val, i.bucketPrefix, dest)
+	if val == nil {
+		return errors.Wrapf(errors.ErrNotFound, "key: %X", key)
+	}
+	return load(key, val, i.bucketPrefix, dest)
 }
 
 func load(key, value, bucketPrefix []byte, dest Model) error {
