@@ -47,6 +47,14 @@ type ModelBucket interface {
 	// is returned.
 	One(db weave.ReadOnlyKVStore, key []byte, dest Model) error
 
+	// PrefixScan will scan for all models with a primary key (ID)
+	// that begins with the given prefix.
+	// The function returns a (possibly empty) iterator, which can
+	// load each model as it arrives.
+	// If reverse is true, iterates in descending order (highest value first),
+	// otherwise, it iterates in ascending order
+	PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, reverse bool) (ModelIterator, error)
+
 	// ByIndex returns all objects that secondary index with given name and
 	// given key. Main index is always unique but secondary indexes can
 	// return more than one value for the same key.
@@ -146,6 +154,26 @@ func (mb *modelBucket) One(db weave.ReadOnlyKVStore, key []byte, dest Model) err
 	ptr.Elem().Set(reflect.ValueOf(res).Elem())
 	ptr.Interface().(Model).SetID(key)
 	return nil
+}
+
+func (mb *modelBucket) PrefixScan(db weave.ReadOnlyKVStore, prefix []byte, reverse bool) (ModelIterator, error) {
+	var rawIter weave.Iterator
+	var err error
+
+	start, end := prefixRange(prefix)
+	if reverse {
+		rawIter, err = db.ReverseIterator(start, end)
+		if err != nil {
+			return nil, errors.Wrap(err, "reverse prefix scan")
+		}
+	} else {
+		rawIter, err = db.Iterator(start, end)
+		if err != nil {
+			return nil, errors.Wrap(err, "prefix scan")
+		}
+	}
+
+	return &idModelIterator{iterator: rawIter}, nil
 }
 
 func (mb *modelBucket) ByIndex(db weave.ReadOnlyKVStore, indexName string, key []byte, destination ModelSlicePtr) error {
