@@ -31,9 +31,9 @@ func (m *Market) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (m *Market) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return err
-	}
+	// if err := m.Metadata.Validate(); err != nil {
+	// 	return err
+	// }
 	if err := isGenID(m.ID, true); err != nil {
 		return err
 	}
@@ -69,9 +69,9 @@ func (o *OrderBook) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (o *OrderBook) Validate() error {
-	if err := o.Metadata.Validate(); err != nil {
-		return err
-	}
+	// if err := o.Metadata.Validate(); err != nil {
+	// 	return err
+	// }
 	if err := isGenID(o.ID, true); err != nil {
 		return err
 	}
@@ -121,9 +121,9 @@ func (o *Order) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (o *Order) Validate() error {
-	if err := o.Metadata.Validate(); err != nil {
-		return err
-	}
+	// if err := o.Metadata.Validate(); err != nil {
+	// 	return err
+	// }
 	if err := isGenID(o.ID, true); err != nil {
 		return err
 	}
@@ -199,9 +199,9 @@ func (t *Trade) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (o *Trade) Validate() error {
-	if err := o.Metadata.Validate(); err != nil {
-		return err
-	}
+	// if err := o.Metadata.Validate(); err != nil {
+	// 	return err
+	// }
 	if err := isGenID(o.ID, true); err != nil {
 		return err
 	}
