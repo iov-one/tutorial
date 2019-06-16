@@ -12,7 +12,7 @@ And you can see how the development flow works and what are the issues you shoul
     Codec is the first the component that needs to be designed. Keep in mind that this part is the most important since whole module will depend on *codec*. You can think codec it as *model* in mvc pattern. Yet it is not simple as model. Codec defines the whole application state models and more.
 
     - #### State
-        ```
+        ```protobuf
         message Trade {
             weave.Metadata metadata = 1;
             bytes id = 2 [(gogoproto.customname) = "ID"];
@@ -29,7 +29,7 @@ And you can see how the development flow works and what are the issues you shoul
         As you can see above, weave is heavily using `bytes` for identites, addresses etc. At first glance this might seem difficult to handle but if you take a look at [x/orderbook/bucket](https://github.com/iov-one/tutorial/blob/master/x/orderbook/bucket.go#L125) you can see it is very useful for indexing and performance
 
     - #### Message definitions
-        ```
+        ```protobuf
         message CreateOrderMsg {
             weave.Metadata metadata = 1;
             bytes trader = 2 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
@@ -49,7 +49,7 @@ And you can see how the development flow works and what are the issues you shoul
 
     Lets bind a path to our new message
 
-    ```
+    ```go
     const (
 	    pathCreateOrderBook = "order/create_book"
     )
@@ -57,11 +57,11 @@ And you can see how the development flow works and what are the issues you shoul
 
     After that ensure your message is a `weave.Msg`
 
-    ```
+    ```go
     var _ weave.Msg = (*CreateOrderBookMsg)(nil)
     ```
 
-    ```
+    ```go
         func (m CreateOrderBookMsg) Validate() error {
 	        if err := m.Metadata.Validate(); err != nil {
 		        return errors.Wrap(err, "metadata")
@@ -82,7 +82,7 @@ And you can see how the development flow works and what are the issues you shoul
         }
     ```
 
-    ```
+    ```go
         func validID(id []byte) error {
 	        if len(id) == 0 {
 		        return errors.Wrap(errors.ErrEmpty, "id missing")
