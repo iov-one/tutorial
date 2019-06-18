@@ -56,14 +56,14 @@ message Order {
   coin.Coin original_offer = 7;
   // Remaning offer. (This part enables partially filled orders)
   coin.Coin remaining_offer = 8;
-  // Price for each unit (in tickers of the opposite currency from our side)
+  // Price defines how many units of Bid we will offer for one unit of Ask
+  // If Side == Ask, we sell ask and accept any price HIGHER
+  // If Side == Bid, we buy ask and accept any price LOWER
   Amount price = 9;
-  // Executed trades (referenced ids)
-  repeated bytes trade_ids = 10;
   // created_at defines create time of an order
-  int64 created_at = 11 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 created_at = 10 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
   // updated_at defines update time of an order
-  int64 updated_at = 12 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 updated_at = 11 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 // Trade is a settled partial/full order
@@ -138,7 +138,9 @@ message CreateOrderMsg {
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
   // Offer is how much will be paid
   coin.Coin offer = 4;
-  // Price is how much is requested for each unit of the offer token
+  // Price defines how many units of Bid we will offer for one unit of Ask
+  // If Side == Ask, we sell ask and accept any price HIGHER
+  // If Side == Bid, we buy ask and accept any price LOWER
   Amount price = 5;
 }
 
