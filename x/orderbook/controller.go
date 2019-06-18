@@ -2,7 +2,9 @@ package orderbook
 
 import (
 	"github.com/iov-one/weave"
+	"github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/errors"
+	"github.com/iov-one/weave/x/cash"
 )
 
 func orderCondition(id []byte) weave.Condition {
@@ -20,9 +22,10 @@ func (order *Order) Address() weave.Address {
 type controller struct {
 	orderBucket *OrderBucket
 	tradeBucket *TradeBucket
+	mover       cash.CoinMover
 }
 
-func (c controller) settleOrder(db weave.KVStore, order *Order) error {
+func (c controller) settleOrder(db weave.KVStore, order *Order, now weave.UnixTime) error {
 	var other Side
 	var descending bool
 	var acceptable func(our, their *Amount) bool
@@ -65,9 +68,9 @@ func (c controller) settleOrder(db weave.KVStore, order *Order) error {
 		}
 
 		// otherwise, execute trade
-		err = c.executeTrade(db, order, &match)
+		err = c.executeTrade(db, order, &match, now)
 		if err != nil {
-			return errors.Wrap(err, "executing trade")
+			return err
 		}
 	}
 
@@ -79,7 +82,85 @@ func (c controller) settleOrder(db weave.KVStore, order *Order) error {
 // that what the new order requested).
 // the smaller order will be emptied, and the larger one typically
 // left with some remaining balance
-func (c controller) executeTrade(db weave.KVStore, order *Order, counter *Order) error {
-	// TODO
+func (c controller) executeTrade(db weave.KVStore, taker, maker *Order, now weave.UnixTime) error {
+	ask, bid := taker, maker
+	if taker.Side == Side_Bid {
+		bid, ask = taker, maker
+	}
+
+	askVal, bidVal, err := amountToSettle(ask, bid, maker.Price)
+	if err != nil {
+		return errors.Wrapf(err, "executing trade %X with %X", taker.ID, maker.ID)
+	}
+
+	takerPaid, makerPaid := askVal, bidVal
+	if taker.Side == Side_Bid {
+		makerPaid, takerPaid = askVal, bidVal
+	}
+
+	// create a trade record
+	trade := Trade{
+		Metadata:    &weave.Metadata{},
+		OrderBookID: ask.OrderBookID,
+		// TODO: we must store both orders that participated
+		OrderID:    taker.ID,
+		Taker:      taker.Trader,
+		Maker:      maker.Trader,
+		TakerPaid:  takerPaid,
+		MakerPaid:  makerPaid,
+		ExecutedAt: now,
+	}
+	if err := c.tradeBucket.Put(db, &trade); err != nil {
+		return errors.Wrap(err, "saving trade")
+	}
+
+	if err := c.payout(db, ask, bid.Trader, *askVal, now); err != nil {
+		return errors.Wrap(err, "ask payout")
+	}
+	if err := c.payout(db, bid, ask.Trader, *bidVal, now); err != nil {
+		return errors.Wrap(err, "bid payout")
+	}
+
 	return nil
+}
+
+func (c controller) payout(db weave.KVStore, from *Order, to weave.Address, amount coin.Coin, now weave.UnixTime) error {
+	// payout the ask side
+	err := c.mover.MoveCoins(db, from.Address(), to, amount)
+	if err != nil {
+		return errors.Wrap(err, "paying trader")
+	}
+	rem, err := from.RemainingOffer.Subtract(amount)
+	if err != nil {
+		return errors.Wrap(err, "deducting ask tokens")
+	}
+	from.RemainingOffer = &rem
+	from.UpdatedAt = now
+	if from.RemainingOffer.IsZero() {
+		// TODO: remember the hanging chads (rr... 1 fractional)
+		from.OrderState = OrderState_Done
+	}
+	if err := c.orderBucket.Put(db, from); err != nil {
+		return errors.Wrap(err, "updating order")
+	}
+	return nil
+}
+
+func amountToSettle(ask *Order, bid *Order, price *Amount) (askVal, bidVal *coin.Coin, err error) {
+	// TODO: how to handler remainders and rounding?
+	// can we be left with an amountToSmall to ever settle?
+
+	askVal = ask.RemainingOffer
+	bidVal, err = price.Multiply(askVal)
+	if err != nil {
+		return
+	}
+
+	// if we don't have enough to cover the ask, then we use the bid amount
+	if bid.RemainingOffer.Compare(*bidVal) < 0 {
+		bidVal = bid.RemainingOffer
+		askVal, err = price.Divide(bidVal)
+	}
+
+	return
 }

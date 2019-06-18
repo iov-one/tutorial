@@ -70,6 +70,18 @@ func (a *Amount) IsNegative() bool {
 	return zeroAmount.Greater(a)
 }
 
+// Multiply returns a new coin of c multiplied by the decimal value of a
+func (a *Amount) Multiply(c *coin.Coin) (*coin.Coin, error) {
+	// TODO
+	return nil, errors.Wrap(errors.ErrHuman, "not implemented")
+}
+
+// Divide returns a new coin of c divided by the decimal value of a
+func (a *Amount) Divide(c *coin.Coin) (*coin.Coin, error) {
+	// TODO
+	return nil, errors.Wrap(errors.ErrHuman, "not implemented")
+}
+
 // Lexographic produces a lexographic ordering, such than
 //
 //   A.Lexographic() < B.Lexographic == A < B

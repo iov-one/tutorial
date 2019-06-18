@@ -139,6 +139,7 @@ func NewCreateOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Han
 		controller: controller{
 			orderBucket: NewOrderBucket(),
 			tradeBucket: NewTradeBucket(),
+			mover:       mover,
 		},
 	}
 }
@@ -191,10 +192,11 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		return nil, err
 	}
 
-	now, err := weave.BlockTime(ctx)
+	blockTime, err := weave.BlockTime(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "no block time in header")
 	}
+	now := weave.AsUnixTime(blockTime)
 
 	trader := msg.Trader
 	if trader == nil {
@@ -215,8 +217,8 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		OriginalOffer:  msg.Offer,
 		RemainingOffer: msg.Offer,
 		Price:          msg.Price,
-		CreatedAt:      weave.AsUnixTime(now),
-		UpdatedAt:      weave.AsUnixTime(now),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	// Save Order
@@ -231,7 +233,7 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		return nil, errors.Wrap(err, "cannot cover order")
 	}
 
-	err = h.controller.settleOrder(db, order)
+	err = h.controller.settleOrder(db, order, now)
 	if err != nil {
 		return nil, errors.Wrap(err, "matching orders")
 	}
