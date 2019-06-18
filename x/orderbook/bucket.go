@@ -151,7 +151,7 @@ type TradeBucket struct {
 
 func NewTradeBucket() *TradeBucket {
 	b := morm.NewModelBucket("trade", &Trade{},
-		morm.WithIndex("order", orderIDIndexer, false),
+		morm.WithMultiKeyIndex("order", orderIDMultiIndexer, false),
 		morm.WithIndex("orderbook", orderBookTimedIndexer, false),
 	)
 	return &TradeBucket{
@@ -159,9 +159,9 @@ func NewTradeBucket() *TradeBucket {
 	}
 }
 
-// orderIDIndexer indexes by order id to give us easy lookup of all trades
-// that fulfilled a given order
-func orderIDIndexer(obj orm.Object) ([]byte, error) {
+// orderIDIndexer indexes by both maker and taker order id
+// to give us easy lookup of all trades that fulfilled a given order
+func orderIDMultiIndexer(obj orm.Object) ([][]byte, error) {
 	if obj == nil || obj.Value() == nil {
 		return nil, nil
 	}
@@ -169,7 +169,7 @@ func orderIDIndexer(obj orm.Object) ([]byte, error) {
 	if !ok {
 		return nil, errors.Wrapf(errors.ErrState, "expected trade, got %T", obj.Value())
 	}
-	return trade.OrderID, nil
+	return [][]byte{trade.MakerID, trade.TakerID}, nil
 }
 
 // orderBookTimedIndexer indexes trades by
@@ -194,7 +194,7 @@ func orderBookTimedIndexer(obj orm.Object) ([]byte, error) {
 // of all trades within one orderbook
 func BuildOrderBookTimeIndex(trade *Trade) ([]byte, error) {
 	res := make([]byte, 16)
-	copy(res, trade.OrderID)
+	copy(res, trade.OrderBookID)
 	// this would violate lexographical ordering as negatives would be highest
 	if trade.ExecutedAt < 0 {
 		return nil, errors.Wrap(errors.ErrState, "cannot index negative execution times")

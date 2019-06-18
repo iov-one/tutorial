@@ -168,7 +168,8 @@ func TestValidateTrade(t *testing.T) {
 		"success, no id": {
 			msg: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
-				OrderID:     weavetest.SequenceID(14),
+				TakerID:     weavetest.SequenceID(22),
+				MakerID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
 				Taker:       weavetest.NewCondition().Address(),
 				Maker:       weavetest.NewCondition().Address(),
@@ -182,7 +183,8 @@ func TestValidateTrade(t *testing.T) {
 			msg: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
-				OrderID:     weavetest.SequenceID(14),
+				TakerID:     weavetest.SequenceID(22),
+				MakerID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
 				Taker:       weavetest.NewCondition().Address(),
 				Maker:       weavetest.NewCondition().Address(),
@@ -196,7 +198,8 @@ func TestValidateTrade(t *testing.T) {
 			msg: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
-				OrderID:     weavetest.SequenceID(14),
+				TakerID:     weavetest.SequenceID(22),
+				MakerID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
 				Taker:       weavetest.NewCondition().Address(),
 				Maker:       weavetest.NewCondition().Address(),

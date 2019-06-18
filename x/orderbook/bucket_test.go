@@ -233,7 +233,8 @@ func TestOrderIDindexer(t *testing.T) {
 
 	trade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(14),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -244,12 +245,12 @@ func TestOrderIDindexer(t *testing.T) {
 
 	cases := map[string]struct {
 		obj      orm.Object
-		expected []byte
+		expected [][]byte
 		wantErr  *errors.Error
 	}{
 		"success": {
 			obj:      orm.NewSimpleObj(nil, trade),
-			expected: trade.OrderID,
+			expected: [][]byte{trade.MakerID, trade.TakerID},
 			wantErr:  nil,
 		},
 		"failure, obj is nil": {
@@ -267,7 +268,7 @@ func TestOrderIDindexer(t *testing.T) {
 
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			index, err := orderIDIndexer(tc.obj)
+			index, err := orderIDMultiIndexer(tc.obj)
 
 			if !tc.wantErr.Is(err) {
 				t.Fatalf("unexpected error: %+v", err)
@@ -283,7 +284,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 
 	validTrade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(14),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -294,7 +296,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 
 	invalidTrade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(13),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -303,7 +306,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 		ExecutedAt:  invalidTime,
 	}
 
-	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 1}
+	// the index is by order*book* and time, not by the orders
+	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1}
 
 	cases := map[string]struct {
 		obj      orm.Object
