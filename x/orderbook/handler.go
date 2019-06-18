@@ -220,8 +220,7 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 
 	// Send money to contract
 	// We must calculate the address after saving to have proper auto-generated ID
-	addr := OrderAddress(order)
-	err = h.mover.MoveCoins(db, trader, addr, *msg.Offer)
+	err = h.mover.MoveCoins(db, trader, order.Address(), *msg.Offer)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot cover order")
 	}
@@ -303,8 +302,8 @@ func (h CancelOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		return nil, errors.Wrap(err, "no block time in header")
 	}
 
-	// Return funds
-	err = h.mover.MoveCoins(db, OrderAddress(order), order.Trader, *order.RemainingOffer)
+	// Return funds to order creator
+	err = h.mover.MoveCoins(db, order.Address(), order.Trader, *order.RemainingOffer)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot cover order")
 	}

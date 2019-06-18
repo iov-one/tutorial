@@ -11,7 +11,7 @@ func orderCondition(id []byte) weave.Condition {
 	return weave.NewCondition("orderbook", "order", id)
 }
 
-// OrderAddress create an Address controled by an order contract
-func OrderAddress(order *Order) weave.Address {
+// Address returns unique address, so an order contract can manage funds
+func (order *Order) Address() weave.Address {
 	return orderCondition(order.ID).Address()
 }
