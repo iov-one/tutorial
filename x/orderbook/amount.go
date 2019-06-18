@@ -47,16 +47,27 @@ func (a *Amount) Validate() error {
 	return nil
 }
 
+var zeroAmount = new(Amount)
+
+// Equals returns true if both amounts are equal
+func (a *Amount) Equals(b *Amount) bool {
+	return a.Whole == b.Whole && a.Fractional == b.Fractional
+}
+
+// Greater returns true if a > b
+func (a *Amount) Greater(b *Amount) bool {
+	return a.Whole > b.Whole ||
+		(a.Whole == b.Whole && a.Fractional > b.Fractional)
+}
+
 // IsPositive returns true if the value is greater than 0
 func (a *Amount) IsPositive() bool {
-	return a.Whole > 0 ||
-		(a.Whole == 0 && a.Fractional > 0)
+	return a.Greater(zeroAmount)
 }
 
 // IsNegative returns true if the value is less than 0
 func (a *Amount) IsNegative() bool {
-	return a.Whole < 0 ||
-		(a.Whole == 0 && a.Fractional < 0)
+	return zeroAmount.Greater(a)
 }
 
 // Lexographic produces a lexographic ordering, such than

@@ -217,7 +217,6 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		Price:          msg.Price,
 		CreatedAt:      weave.AsUnixTime(now),
 		UpdatedAt:      weave.AsUnixTime(now),
-		TradeIds:       nil,
 	}
 
 	// Save Order

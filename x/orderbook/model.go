@@ -113,7 +113,6 @@ func (o *Order) Copy() orm.CloneableData {
 		OriginalOffer:  o.OriginalOffer.Clone(),
 		RemainingOffer: o.RemainingOffer.Clone(),
 		Price:          o.Price.Clone(),
-		TradeIds:       copyBytesList(o.TradeIds),
 		CreatedAt:      o.CreatedAt,
 		UpdatedAt:      o.UpdatedAt,
 	}
