@@ -20,13 +20,17 @@ const (
 func RegisterQuery(qr weave.QueryRouter) {
 	NewMarketBucket().Register("markets", qr)
 	NewOrderBookBucket().Register("orderbooks", qr)
+	NewOrderBucket().Register("orders", qr)
+	NewTradeBucket().Register("trades", qr)
 }
 
 // RegisterRoutes registers handlers for orderbook message processing.
-func RegisterRoutes(r weave.Registry, auth x.Authenticator) {
+func RegisterRoutes(r weave.Registry, auth x.Authenticator, mover cash.CoinMover) {
 	r = migration.SchemaMigratingRegistry(packageName, r)
 
 	r.Handle(CreateOrderBookMsg{}.Path(), NewOrderBookHandler(auth))
+	r.Handle(CreateOrderMsg{}.Path(), NewCreateOrderHandler(auth, mover))
+	r.Handle(CancelOrderMsg{}.Path(), NewCancelOrderHandler(auth, mover))
 }
 
 // ------------------- ORDERBOOK HANDLER -------------------
