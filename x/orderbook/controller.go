@@ -102,22 +102,22 @@ func (c controller) executeTrade(db weave.KVStore, taker, maker *Order, now weav
 	trade := Trade{
 		Metadata:    &weave.Metadata{},
 		OrderBookID: ask.OrderBookID,
-		TakerID:    taker.ID,
-		MakerID:    maker.ID,
-		Taker:      taker.Trader,
-		Maker:      maker.Trader,
-		TakerPaid:  takerPaid,
-		MakerPaid:  makerPaid,
-		ExecutedAt: now,
+		TakerID:     taker.ID,
+		MakerID:     maker.ID,
+		Taker:       taker.Trader,
+		Maker:       maker.Trader,
+		TakerPaid:   &takerPaid,
+		MakerPaid:   &makerPaid,
+		ExecutedAt:  now,
 	}
 	if err := c.tradeBucket.Put(db, &trade); err != nil {
 		return errors.Wrap(err, "saving trade")
 	}
 
-	if err := c.payout(db, ask, bid.Trader, *askVal, now); err != nil {
+	if err := c.payout(db, ask, bid.Trader, askVal, now); err != nil {
 		return errors.Wrap(err, "ask payout")
 	}
-	if err := c.payout(db, bid, ask.Trader, *bidVal, now); err != nil {
+	if err := c.payout(db, bid, ask.Trader, bidVal, now); err != nil {
 		return errors.Wrap(err, "bid payout")
 	}
 
@@ -146,19 +146,19 @@ func (c controller) payout(db weave.KVStore, from *Order, to weave.Address, amou
 	return nil
 }
 
-func amountToSettle(ask *Order, bid *Order, price *Amount) (askVal, bidVal *coin.Coin, err error) {
+func amountToSettle(ask *Order, bid *Order, price *Amount) (askVal, bidVal coin.Coin, err error) {
 	// TODO: how to handler remainders and rounding?
 	// can we be left with an amountToSmall to ever settle?
 
-	askVal = ask.RemainingOffer
+	askVal = *ask.RemainingOffer
 	bidVal, err = price.Multiply(askVal)
 	if err != nil {
 		return
 	}
 
 	// if we don't have enough to cover the ask, then we use the bid amount
-	if bid.RemainingOffer.Compare(*bidVal) < 0 {
-		bidVal = bid.RemainingOffer
+	if bid.RemainingOffer.Compare(bidVal) < 0 {
+		bidVal = *bid.RemainingOffer
 		askVal, err = price.Divide(bidVal)
 	}
 

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/iov-one/weave/coin"
+	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/weavetest/assert"
 )
 
@@ -108,5 +110,67 @@ func TestAmountGreater(t *testing.T) {
 			assert.Equal(t, tc.expected, greater)
 		})
 	}
+}
 
+func TestAmountMultiply(t *testing.T) {
+	cases := map[string]struct {
+		in       coin.Coin
+		amt      Amount
+		expected coin.Coin
+		wantErr  *errors.Error
+	}{
+		"multiply by 1": {
+			in:       coin.NewCoin(100, 200, "ETH"),
+			amt:      NewAmount(1, 0),
+			expected: coin.NewCoin(100, 200, "ETH"),
+		},
+		"multiply by 0": {
+			in:       coin.NewCoin(100, 200, "ETH"),
+			amt:      NewAmount(0, 0),
+			expected: coin.NewCoin(0, 0, "ETH"),
+		},
+		"multiply by positive int": {
+			in:       coin.NewCoin(123, 456, "ETH"),
+			amt:      NewAmount(17, 0),
+			expected: coin.NewCoin(2091, 7752, "ETH"),
+		},
+		"multiply by int, fractional to whole overflow": {
+			in:  coin.NewCoin(20, 100000000, "ETH"),
+			amt: NewAmount(12, 0),
+			// 1 rolls on over into whole
+			expected: coin.NewCoin(241, 200000000, "ETH"),
+		},
+		"multiply by fractional 0.1, no underflow": {
+			in:       coin.NewCoin(20, 100000000, "ATM"),
+			amt:      NewAmount(0, 100000000),
+			expected: coin.NewCoin(2, 10000000, "ATM"),
+		},
+		"multiply by fractional 0.1,  underflow": {
+			in:       coin.NewCoin(12, 345000000, "ATM"),
+			amt:      NewAmount(0, 100000000),
+			expected: coin.NewCoin(1, 234500000, "ATM"),
+		},
+		"multiply by fractional 2.3, addition": {
+			in:       coin.NewCoin(12, 345000000, "ATM"),
+			amt:      NewAmount(2, 300000000),
+			expected: coin.NewCoin(28, 393500000, "ATM"),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			assert.Nil(t, tc.in.Validate())
+			out, err := tc.amt.Multiply(tc.in)
+
+			if tc.wantErr != nil {
+				if !tc.wantErr.Is(err) {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				return
+			}
+
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, out)
+		})
+	}
 }

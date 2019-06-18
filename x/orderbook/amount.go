@@ -71,15 +71,39 @@ func (a *Amount) IsNegative() bool {
 }
 
 // Multiply returns a new coin of c multiplied by the decimal value of a
-func (a *Amount) Multiply(c *coin.Coin) (*coin.Coin, error) {
-	// TODO
-	return nil, errors.Wrap(errors.ErrHuman, "not implemented")
+func (a *Amount) Multiply(c coin.Coin) (coin.Coin, error) {
+	out, err := c.Multiply(a.Whole)
+	if err != nil {
+		return coin.Coin{}, err
+	}
+
+	frac, err := a.multiplyFraction(c)
+	if err != nil {
+		return coin.Coin{}, err
+	}
+
+	return out.Add(frac)
+}
+
+func (a *Amount) multiplyFraction(c coin.Coin) (coin.Coin, error) {
+	var whole int64
+	// TODO: do we need to check for overflow?
+	fr := c.Whole*a.Fractional + (c.Fractional * a.Fractional / coin.FracUnit)
+	if fr > coin.FracUnit {
+		whole = fr / coin.FracUnit
+		fr -= whole * coin.FracUnit
+	}
+	return coin.Coin{
+		Whole:      whole,
+		Fractional: fr,
+		Ticker:     c.Ticker,
+	}, nil
 }
 
 // Divide returns a new coin of c divided by the decimal value of a
-func (a *Amount) Divide(c *coin.Coin) (*coin.Coin, error) {
+func (a *Amount) Divide(c coin.Coin) (coin.Coin, error) {
 	// TODO
-	return nil, errors.Wrap(errors.ErrHuman, "not implemented")
+	return coin.Coin{}, errors.Wrap(errors.ErrHuman, "not implemented")
 }
 
 // Lexographic produces a lexographic ordering, such than
