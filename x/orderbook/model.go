@@ -187,7 +187,8 @@ func (t *Trade) Copy() orm.CloneableData {
 		Metadata:    t.Metadata.Copy(),
 		ID:          copyBytes(t.ID),
 		OrderBookID: copyBytes(t.OrderBookID),
-		OrderID:     copyBytes(t.OrderID),
+		TakerID:     copyBytes(t.TakerID),
+		MakerID:     copyBytes(t.MakerID),
 		Taker:       copyBytes(t.Taker),
 		Maker:       copyBytes(t.Maker),
 		MakerPaid:   t.MakerPaid.Clone(),
@@ -207,8 +208,11 @@ func (o *Trade) Validate() error {
 	if err := isGenID(o.OrderBookID, false); err != nil {
 		return errors.Wrap(err, "order book id")
 	}
-	if err := isGenID(o.OrderID, false); err != nil {
-		return errors.Wrap(err, "order  id")
+	if err := isGenID(o.MakerID, false); err != nil {
+		return errors.Wrap(err, "maker id")
+	}
+	if err := isGenID(o.TakerID, false); err != nil {
+		return errors.Wrap(err, "taker id")
 	}
 	if err := o.Taker.Validate(); err != nil {
 		return errors.Wrap(err, "taker")

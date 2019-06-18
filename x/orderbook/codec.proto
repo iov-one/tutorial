@@ -76,16 +76,19 @@ message Trade {
   weave.Metadata metadata = 1;
   bytes id = 2 [(gogoproto.customname) = "ID"];
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
-  bytes order_id = 4 [(gogoproto.customname) = "OrderID"];
+  // ID of the order that was the taker
+  bytes taker_id = 4 [(gogoproto.customname) = "TakerID"];
+  // ID of the order that was the maker
+  bytes maker_id = 5 [(gogoproto.customname) = "MakerID"];
   // Address of taker (this is an order that was instantly fulfilled)
-  bytes taker = 5 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes taker = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // Address of maker (this is an order that was stored first before fulfillment)
-  bytes maker = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes maker = 7 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // this is how much each side paid (they got the opposite one)
-  coin.Coin maker_paid = 7;
-  coin.Coin taker_paid = 8;
+  coin.Coin maker_paid = 8;
+  coin.Coin taker_paid = 9;
   // executed_at defines execution time of an order
-  int64 executed_at = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 executed_at = 10 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 // An Orderbook lives in a market and represents a ask/bid pair.

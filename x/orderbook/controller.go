@@ -102,8 +102,8 @@ func (c controller) executeTrade(db weave.KVStore, taker, maker *Order, now weav
 	trade := Trade{
 		Metadata:    &weave.Metadata{},
 		OrderBookID: ask.OrderBookID,
-		// TODO: we must store both orders that participated
-		OrderID:    taker.ID,
+		TakerID:    taker.ID,
+		MakerID:    maker.ID,
 		Taker:      taker.Trader,
 		Maker:      maker.Trader,
 		TakerPaid:  takerPaid,
