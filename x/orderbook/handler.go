@@ -119,9 +119,9 @@ type CreateOrderHandler struct {
 	auth            x.Authenticator
 	mover           cash.CoinMover
 	orderBucket     *OrderBucket
-	tradeBucket     *TradeBucket
 	orderBookBucket *OrderBookBucket
 	marketBucket    *MarketBucket
+	controller      controller
 }
 
 var _ weave.Handler = CreateOrderHandler{}
@@ -134,9 +134,12 @@ func NewCreateOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Han
 		auth:            auth,
 		mover:           mover,
 		orderBucket:     NewOrderBucket(),
-		tradeBucket:     NewTradeBucket(),
 		orderBookBucket: NewOrderBookBucket(),
 		marketBucket:    NewMarketBucket(),
+		controller: controller{
+			orderBucket: NewOrderBucket(),
+			tradeBucket: NewTradeBucket(),
+		},
 	}
 }
 
@@ -229,10 +232,13 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		return nil, errors.Wrap(err, "cannot cover order")
 	}
 
-	// TODO: run through match making on this, re-save each match
+	err = h.controller.settleOrder(db, order)
+	if err != nil {
+		return nil, errors.Wrap(err, "matching orders")
+	}
 
 	// we return the new id on creation to enable easier queries
-	return &weave.DeliverResult{Data: order.ID}, err
+	return &weave.DeliverResult{Data: order.ID}, nil
 }
 
 // CancelOrderHandler will handle creating orderbooks

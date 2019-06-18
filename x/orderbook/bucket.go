@@ -109,7 +109,7 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 	if !ok {
 		return nil, errors.Wrapf(errors.ErrState, "expected order, got %T", obj.Value())
 	}
-	return BuildOpenOrderIndex(order)
+	return BuildOpenOrderIndex(order.OrderBookID, order.OrderState, order.Side, order.Price)
 }
 
 // BuildOpenOrderIndex produces a compound index like:
@@ -122,20 +122,26 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 //   A.Lexographic() < B.Lexographic == A < B
 //
 // This is a very nice trick to get clean range queries over sensible value ranges in a key-value store
-func BuildOpenOrderIndex(order *Order) ([]byte, error) {
+func BuildOpenOrderIndex(orderBookID []byte, state OrderState, side Side, price *Amount) ([]byte, error) {
 	// we don't index if state isn't open
-	if order.OrderState != OrderState_Open {
+	if state != OrderState_Open {
 		return nil, nil
 	}
 
-	res := make([]byte, 9+16)
-	copy(res, order.OrderBookID)
-	res[8] = byte(order.Side)
-	lex, err := order.Price.Lexographic()
+	res := make([]byte, 9, 9+16)
+	copy(res, orderBookID)
+	res[8] = byte(side)
+
+	// if price is nil, just return the prefix for scanning
+	if price == nil {
+		return res, nil
+	}
+
+	lex, err := price.Lexographic()
 	if err != nil {
 		return nil, errors.Wrap(err, "building order index")
 	}
-	copy(res[9:], lex)
+	res = append(res, lex...)
 	return res, nil
 }
 
@@ -183,7 +189,7 @@ func orderBookTimedIndexer(obj orm.Object) ([]byte, error) {
 	return BuildOrderBookTimeIndex(trade)
 }
 
-// BuildOpenOrderIndex produces 8 bytes OrderBookID || big-endian ExecutedAt
+// BuildOrderBookTimeIndex produces 8 bytes OrderBookID || big-endian ExecutedAt
 // This allows lexographical searches over the time ranges (or earliest or latest)
 // of all trades within one orderbook
 func BuildOrderBookTimeIndex(trade *Trade) ([]byte, error) {
