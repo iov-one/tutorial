@@ -5,6 +5,7 @@ import (
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/migration"
 	"github.com/iov-one/weave/x"
+	"github.com/iov-one/weave/x/cash"
 )
 
 const (
@@ -111,6 +112,7 @@ func (h OrderBookHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.
 // CreateOrderHandler will handle creating orderbooks
 type CreateOrderHandler struct {
 	auth            x.Authenticator
+	mover           cash.CoinMover
 	orderBucket     *OrderBucket
 	tradeBucket     *TradeBucket
 	orderBookBucket *OrderBookBucket
@@ -122,9 +124,10 @@ var _ weave.Handler = CreateOrderHandler{}
 // NewCreateOrderHandler creates a handler that allows issuer to
 // create orderbooks. Only owner/admin of the market can issue
 // new orderbooks
-func NewCreateOrderHandler(auth x.Authenticator) weave.Handler {
+func NewCreateOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Handler {
 	return CreateOrderHandler{
 		auth:            auth,
+		mover:           mover,
 		orderBucket:     NewOrderBucket(),
 		tradeBucket:     NewTradeBucket(),
 		orderBookBucket: NewOrderBookBucket(),
@@ -214,7 +217,13 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		return nil, err
 	}
 
-	// TODO: Send money to Address
+	// Send money to contract
+	// We must calculate the address after saving to have proper auto-generated ID
+	addr := OrderAddress(order)
+	err = h.mover.MoveCoins(db, trader, addr, *msg.Offer)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot cover order")
+	}
 
 	// TODO: run through match making on this, re-save each match
 
