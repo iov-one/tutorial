@@ -100,6 +100,73 @@ And you can see how the development flow works and what are the issues you shoul
 
     You must have notice we even validate if ```ID```'s lenght is not 0 and equal to 8 and tickers are actually string tickers. **Remember** more validation more solid your application is.
 
+3. #### Models
+    > [PR#6](https://github.com/iov-one/tutorial/pull/6): _Create models_
+
+    We defined our state in [codec section](#codec). In order to use models in weave we have to wrap our model with some functionalities and enforce it is a **morm.Model**
+
+    Ensure our *OrderBook* fulfills **morm.Model**
+
+    ```go
+    var _ morm.Model = (*OrderBook)(nil)
+    ```
+    
+    Define **SetID** function
+
+    ```go
+    func (o *OrderBook) SetID(id []byte) error {
+	    o.ID = id
+	    return nil
+    }
+    ```
+
+    In order to our model to fulfill **Model** it must be [Clonable](https://github.com/iov-one/weave/blob/master/orm/interfaces.go#L34).
+    
+    This is how you ensure it:
+
+    ```go
+    func (o *OrderBook) Copy() orm.CloneableData {
+	    return &OrderBook{
+		    Metadata:      o.Metadata.Copy(),
+		    ID:            copyBytes(o.ID),
+		    MarketID:      copyBytes(o.MarketID),
+		    AskTicker:     o.AskTicker,
+		    BidTicker:     o.BidTicker,
+		    TotalAskCount: o.TotalAskCount,
+		    TotalBidCount: o.TotalBidCount,
+	    }
+    }
+    ```
+
+    Another point **Model** enforces is ```Validate``` method.
+
+    ```go
+    func (o *OrderBook) Validate() error {
+	    if err := isGenID(o.ID, true); err != nil {
+    		return err
+	    }
+	    if err := isGenID(o.MarketID, false); err != nil {
+		    return errors.Wrap(err, "market id")
+	    }
+	    if !coin.IsCC(o.AskTicker) {
+		    return errors.Wrap(errors.ErrModel, "invalid ask ticker")
+	    }
+	    if !coin.IsCC(o.BidTicker) {
+		    return errors.Wrap(errors.ErrModel, "invalid bid ticker")
+	    }
+	    if o.TotalAskCount < 0 {
+		    return errors.Wrap(errors.ErrModel, "negative total ask count")
+	    }
+	    if o.TotalBidCount < 0 {
+    		return errors.Wrap(errors.ErrModel, "negative total bid count")
+    	}
+	    return nil
+    }
+    ```
+
+    >I want to point out again and make it persistent in your mind: Extensive **Validation** is crucial.
+
+
 ## PRs
  - [PR#1](https://github.com/iov-one/tutorial/pull/1): _Create order book models_
  - [PR#2](https://github.com/iov-one/tutorial/pull/2): _Create msgs_
