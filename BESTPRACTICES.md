@@ -231,7 +231,10 @@ And you can see how the development flow works and what are the issues you shoul
     }
     ```
     
-    You must have ideas flying around on your mind like **how are we going to make an compound index? Really!? Is it all weave has?** Do not worry *weave* has it all :punch:.
+    You must have ideas flying around on your mind like **how are we going to make an compound index? Really!? Is it all weave has?**
+
+    \
+    Do not worry. **Weave** is like a swiss knife with a lot of blockchain features.
 
     Now it is time for a compound index.
     Here is how we create compound index for morm buckets:
