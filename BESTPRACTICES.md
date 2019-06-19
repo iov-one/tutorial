@@ -9,6 +9,8 @@ And you can see how the development flow works and what are the issues you shoul
 
 ### Development flow
 1. #### Codec
+    > [PR#1](https://github.com/iov-one/tutorial/pull/1): _Create order book models_
+
     Codec is the first the component that needs to be designed. Keep in mind that this part is the most important since whole module will depend on *codec*. You can think codec it as *model* in mvc pattern. Yet it is not simple as model. Codec defines the whole application state models and more.
 
     - #### State
@@ -45,6 +47,8 @@ And you can see how the development flow works and what are the issues you shoul
     Now we have scaffold of our application thanks to auto-generated `codec.pb.go` file.
 
 2. #### Messages
+    > [PR#2](https://github.com/iov-one/tutorial/pull/2): _Create msgs_
+    
     This is where we wrap our auto generated message types with useful and vital functionalities. Before getting into this section I want to remind you *validation* is **EXTREMELY**  important. First create your `msg.go` file. This is where the magic will happen :grin:
 
     Lets bind a path to our new message
