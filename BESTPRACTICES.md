@@ -66,36 +66,36 @@ And you can see how the development flow works and what are the issues you shoul
     ```
 
     ```go
-        func (m CreateOrderBookMsg) Validate() error {
-	        if err := m.Metadata.Validate(); err != nil {
-		        return errors.Wrap(err, "metadata")
-	        }
-	        if err := validID(m.MarketID); err != nil {
-		        return errors.Wrap(err, "market id")
-	        }
-	        if !coin.IsCC(m.AskTicker) {
-		        return errors.Wrapf(errors.ErrCurrency, "Invalid Ask Ticker: %s", m.AskTicker)
-	        }
-	        if !coin.IsCC(m.BidTicker) {
-		        return errors.Wrapf(errors.ErrCurrency, "Invalid Bid Ticker: %s", m.BidTicker)
-	        }
-	        if m.BidTicker <= m.AskTicker {
-		        return errors.Wrapf(errors.ErrCurrency, "ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)
-	        }
-	        return nil
-        }
+    func (m CreateOrderBookMsg) Validate() error {
+	    if err := m.Metadata.Validate(); err != nil {
+		    return errors.Wrap(err, "metadata")
+	    }
+	    if err := validID(m.MarketID); err != nil {
+		    return errors.Wrap(err, "market id")
+	    }
+	    if !coin.IsCC(m.AskTicker) {
+		    return errors.Wrapf(errors.ErrCurrency, "Invalid Ask Ticker: %s", m.AskTicker)
+	    }
+	    if !coin.IsCC(m.BidTicker) {
+		    return errors.Wrapf(errors.ErrCurrency, "Invalid Bid Ticker: %s", m.BidTicker)
+	    }
+	    if m.BidTicker <= m.AskTicker {
+		    return errors.Wrapf(errors.ErrCurrency, "ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)
+	    }
+	    return nil
+    }
     ```
 
     ```go
-        func validID(id []byte) error {
-	        if len(id) == 0 {
-		        return errors.Wrap(errors.ErrEmpty, "id missing")
-	        }
-	        if len(id) != 8 {
-		        return errors.Wrap(errors.ErrInput, "id is invalid length (expect 8 bytes)")
-	        }
-	        return nil
-        }
+    func validID(id []byte) error {
+	    if len(id) == 0 {
+		    return errors.Wrap(errors.ErrEmpty, "id missing")
+	    }
+	    if len(id) != 8 {
+		    return errors.Wrap(errors.ErrInput, "id is invalid length (expect 8 bytes)")
+	    }
+	    return nil
+    }
     ```
 
     You must have notice we even validate if ```ID```'s lenght is not 0 and equal to 8 and tickers are actually string tickers. **Remember** more validation more solid your application is.
