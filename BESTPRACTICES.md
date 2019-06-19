@@ -168,6 +168,8 @@ And you can see how the development flow works and what are the issues you shoul
 
 4. #### Buckets
     > [PR#8](https://github.com/iov-one/tutorial/pull/8): _Create buckets_
+    \
+    [PR#9](https://github.com/iov-one/tutorial/pull/9): _Add indexer for market using marketID, askTicker, bidTicker_
     
     Buckets are the components that we will use to interact with the KV store. It is our data warehouse. 
     \
