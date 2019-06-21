@@ -30,6 +30,18 @@ And you can see how the development flow works and what are the issues you shoul
 
         As you can see above, weave is heavily using `bytes` for identites, addresses etc. At first glance this might seem difficult to handle but if you take a look at [x/orderbook/bucket](https://github.com/iov-one/tutorial/blob/master/x/orderbook/bucket.go#L125) you can see it is very useful for indexing and performance
 
+        There are 2 critical points that needs to be explained in state models and messages.
+
+        Firstly, You must have noticed one and said what the hell is
+
+        ```protobuf
+        weave.Metadata metadata = 1;
+        ```
+
+        `weave.Metadata` allows you to use *Migration* extension. `Migration extension` allows upgrading the code on chain without any downtime. This will be explained in more detail in further sections.
+
+        Second one is how the magic `ID` field works. This will be explained in [Models](#Models) section.
+
     - #### Message definitions
         ```protobuf
         message CreateOrderMsg {
@@ -98,30 +110,34 @@ And you can see how the development flow works and what are the issues you shoul
     }
     ```
 
-    You must have notice we even validate if ```ID```'s lenght is not 0 and equal to 8 and tickers are actually string tickers. **Remember** more validation more solid your application is.
+    You must have notice we even validate if ```ID```'s lenght is not 0 and equal to 8 and tickers are actually string tickers. **Remember** more validation more solid your application is. If you **constrain** possible inputs, it is **less** checks you must do in the business logic.
 
 3. #### Models
     > [PR#6](https://github.com/iov-one/tutorial/pull/6): _Create models_
 
     We defined our state in [codec section](#codec). In order to use models in weave we have to wrap our model with some functionalities and enforce it is a **morm.Model**
 
-    Ensure our *OrderBook* fulfills **morm.Model**
+    Ensure our *OrderBook* fulfills **morm.Model**. This is just a helper so the compiler will complain loudly here if you forget to implement a method. Guaranteeing it *I am trying to implement this interface*.
 
     ```go
     var _ morm.Model = (*OrderBook)(nil)
     ```
     
-    Define **SetID** function
+    Now lets work on our models identity
+    > How identity works in weave?
 
-    ```go
-    func (o *OrderBook) SetID(id []byte) error {
-	    o.ID = id
-	    return nil
-    }
-    ```
+    - #### Auto incremented identities
+
+        `morm.Model` covers auto incremented IDs for you. All you have to define `GetID` and `SetID` methods. If you defined `bytes id = 2 [(gogoproto.customname) = "ID"];`  on `codec.proto` you do not even need to write `GetID` method by yourself, Thanks to prototool it will be generated automatically. You will only need to define *SetID* method.
+
+    - #### Custom identity
+
+        For using your custom identity do not define `bytes id = 2 [(gogoproto.customname) = "ID"];` on `codec.proto`. You can use any other field as index with logic on top. Just write `SetID` and `GetID` logic that uses your index.
+
+    Now you see how indexing works in **weave**. Lets see the other wonders of **weave**.
 
     In order to our model to fulfill **Model** it must be [Clonable](https://github.com/iov-one/weave/blob/master/orm/interfaces.go#L34).
-    
+
     This is how you ensure it:
 
     ```go
