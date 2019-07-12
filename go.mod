@@ -7,11 +7,9 @@ require (
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/iov-one/weave v0.16.0
-	github.com/iov-one/weave-starter-kit v0.0.3
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
 	github.com/tendermint/tendermint v0.31.5
-	golang.org/x/tools v0.0.0-20190425222832-ad9eeb80039a // indirect
 	google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e // indirect
 )
