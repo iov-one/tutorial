@@ -3,8 +3,8 @@
 # make sure we turn on go modules
 export GO111MODULE := on
 
-# for building out the mycoind app
-BUILDOUT ?= mycoind
+# for building out the dexd app
+BUILDOUT ?= dexd
 BUILD_VERSION ?= $(shell git describe --tags)
 BUILD_FLAGS := -mod=readonly -ldflags "-X github.com/iov-one/weave.Version=$(BUILD_VERSION)"
 
@@ -24,10 +24,10 @@ clean:
 	rm -f ${BUILDOUT}
 
 build:
-	go build $(BUILD_FLAGS) -o $(BUILDOUT) ./cmd/mycoind
+	go build $(BUILD_FLAGS) -o $(BUILDOUT) ./cmd/dexd
 
 install:
-	go install $(BUILD_FLAGS) ./cmd/mycoind
+	go install $(BUILD_FLAGS) ./cmd/dexd
 
 test:
 	go vet -mod=readonly ./...
