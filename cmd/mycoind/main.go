@@ -11,7 +11,7 @@ import (
 	"github.com/iov-one/weave/commands/server"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/iov-one/weave-starter-kit/cmd/mycoind/app"
+	"github.com/iov-one/tutorial/cmd/mycoind/app"
 )
 
 var (
