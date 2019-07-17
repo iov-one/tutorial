@@ -22,6 +22,9 @@ func NewAmountp(whole int64, fractional int64) *Amount {
 }
 
 func (a *Amount) Clone() *Amount {
+	if a == nil {
+		return nil
+	}
 	return &Amount{
 		Whole:      a.Whole,
 		Fractional: a.Fractional,
