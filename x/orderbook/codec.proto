@@ -12,8 +12,6 @@ import "gogoproto/gogo.proto";
 // We use it where a ticker is impossible (like quantity)
 // For offers where ticker is implied, we still use coin.Coin
 // as we inherit much math from there.
-//
-// TODO: work out how to multiply Amount * Coin
 message Amount {
   // Whole coins, -10^15 < integer < 10^15
   int64 whole = 1;

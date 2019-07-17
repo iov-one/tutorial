@@ -64,8 +64,6 @@ func (OrderState) EnumDescriptor() ([]byte, []int) {
 // We use it where a ticker is impossible (like quantity)
 // For offers where ticker is implied, we still use coin.Coin
 // as we inherit much math from there.
-//
-// TODO: work out how to multiply Amount * Coin
 type Amount struct {
 	// Whole coins, -10^15 < integer < 10^15
 	Whole int64 `protobuf:"varint,1,opt,name=whole,proto3" json:"whole,omitempty"`

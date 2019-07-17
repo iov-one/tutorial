@@ -32,12 +32,16 @@ func TestMarketIDindexer(t *testing.T) {
 			expected: marketID,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.value nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not orderbook": {
 			obj:      orm.NewSimpleObj(nil, new(Order)),
 			expected: nil,
@@ -110,12 +114,16 @@ func TestMarketIDTickersIndexer(t *testing.T) {
 			expected: expectedIndex3,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.value nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not orderbook": {
 			obj:      orm.NewSimpleObj(nil, new(Order)),
 			expected: nil,
@@ -192,22 +200,26 @@ func TestOpenOrderIndexer(t *testing.T) {
 			expected: successCaseExpectedValue,
 			wantErr:  nil,
 		},
-		"failure, order state done": {
+		"empty, order state done": {
 			obj:      orm.NewSimpleObj(nil, doneOrder),
 			expected: nil,
 			wantErr:  nil,
 		},
-		"failure, order state cancel": {
+		"empty, order state cancel": {
 			obj:      orm.NewSimpleObj(nil, cancelledOrder),
 			expected: nil,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() is nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"failure not order": {
 			obj:      orm.NewSimpleObj(nil, new(OrderBook)),
 			expected: nil,
@@ -252,12 +264,16 @@ func TestOrderIDindexer(t *testing.T) {
 			expected: [][]byte{trade.MakerID, trade.TakerID},
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not trade": {
 			obj:      orm.NewSimpleObj(nil, new(OrderBook)),
 			expected: nil,
@@ -323,12 +339,16 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 			expected: nil,
 			wantErr:  errors.ErrState,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"invalid execution time": {
 			obj:      orm.NewSimpleObj(nil, invalidTrade),
 			expected: nil,

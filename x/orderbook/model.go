@@ -153,7 +153,6 @@ func (o *Order) Validate() error {
 	if !o.Price.IsPositive() {
 		return errors.Wrap(errors.ErrState, "price must be positive")
 	}
-	// TODO: valid trade ids (also rethink how we handle this? just use index and not in model?)
 
 	if err := o.UpdatedAt.Validate(); err != nil {
 		return errors.Wrap(err, "updated at")
