@@ -25,8 +25,6 @@ import (
 
 // GenInitOptions will produce some basic options for one rich
 // account, to use for dev mode
-//
-// You can set
 func GenInitOptions(args []string) (json.RawMessage, error) {
 	code := "DEX"
 	if len(args) > 0 {
