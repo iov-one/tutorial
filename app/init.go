@@ -94,7 +94,7 @@ func GenerateApp(options *server.Options) (abci.Application, error) {
 	}
 
 	stack := Stack(options.MinFee)
-	application, err := Application("mycoin", stack, TxDecoder, dbPath, options.Debug)
+	application, err := Application("dex", stack, TxDecoder, dbPath, options.Debug)
 	if err != nil {
 		return nil, err
 	}
