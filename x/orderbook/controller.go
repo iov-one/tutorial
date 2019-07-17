@@ -26,25 +26,25 @@ type controller struct {
 }
 
 func (c controller) settleOrder(db weave.KVStore, order *Order, now weave.UnixTime) error {
-	var other Side
+	var otherAsk bool
 	var descending bool
 	var acceptable func(our, their *Amount) bool
 
 	// We configure which orders to search and which direction
-	if order.Side == Side_Ask {
+	if order.IsAsk {
 		// we want the highest price for our Ask token
-		other = Side_Bid
+		otherAsk = false
 		descending = true
 		acceptable = func(our, their *Amount) bool { return !our.Greater(their) }
 	} else {
 		// we want the lowest price for their Ask token
-		other = Side_Ask
+		otherAsk = true
 		descending = false
 		acceptable = func(our, their *Amount) bool { return !their.Greater(our) }
 	}
 
 	// get an iterator over all matches
-	prefix, err := BuildOpenOrderIndex(order.OrderBookID, order.OrderState, other, nil)
+	prefix, err := BuildOpenOrderIndex(order.OrderBookID, order.OrderState, otherAsk, nil)
 	if err != nil {
 		return errors.Wrap(err, "prepare prefix to scan")
 	}
@@ -84,7 +84,7 @@ func (c controller) settleOrder(db weave.KVStore, order *Order, now weave.UnixTi
 // left with some remaining balance
 func (c controller) executeTrade(db weave.KVStore, taker, maker *Order, now weave.UnixTime) error {
 	ask, bid := taker, maker
-	if taker.Side == Side_Bid {
+	if !taker.IsAsk {
 		bid, ask = taker, maker
 	}
 
@@ -94,7 +94,7 @@ func (c controller) executeTrade(db weave.KVStore, taker, maker *Order, now weav
 	}
 
 	takerPaid, makerPaid := askVal, bidVal
-	if taker.Side == Side_Bid {
+	if !taker.IsAsk {
 		makerPaid, takerPaid = askVal, bidVal
 	}
 

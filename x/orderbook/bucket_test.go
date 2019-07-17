@@ -140,13 +140,12 @@ func TestOpenOrderIndexer(t *testing.T) {
 	onceUponATime := weave.AsUnixTime(time.Time{})
 
 	orderBookID := weavetest.SequenceID(5)
-	side := Side_Ask
 
 	openOrder := &Order{
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Open,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
@@ -159,7 +158,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Done,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
@@ -172,7 +171,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Cancel,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),

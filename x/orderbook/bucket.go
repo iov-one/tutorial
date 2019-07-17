@@ -109,7 +109,7 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 	if !ok {
 		return nil, errors.Wrapf(errors.ErrState, "expected order, got %T", obj.Value())
 	}
-	return BuildOpenOrderIndex(order.OrderBookID, order.OrderState, order.Side, order.Price)
+	return BuildOpenOrderIndex(order.OrderBookID, order.OrderState, order.IsAsk, order.Price)
 }
 
 // BuildOpenOrderIndex produces a compound index like:
@@ -122,7 +122,7 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 //   A.Lexographic() < B.Lexographic == A < B
 //
 // This is a very nice trick to get clean range queries over sensible value ranges in a key-value store
-func BuildOpenOrderIndex(orderBookID []byte, state OrderState, side Side, price *Amount) ([]byte, error) {
+func BuildOpenOrderIndex(orderBookID []byte, state OrderState, isAsk bool, price *Amount) ([]byte, error) {
 	// we don't index if state isn't open
 	if state != OrderState_Open {
 		return nil, nil
@@ -130,7 +130,11 @@ func BuildOpenOrderIndex(orderBookID []byte, state OrderState, side Side, price 
 
 	res := make([]byte, 9, 9+16)
 	copy(res, orderBookID)
-	res[8] = byte(side)
+	if isAsk {
+		res[8] = 1
+	} else {
+		res[8] = 2
+	}
 
 	// if price is nil, just return the prefix for scanning
 	if price == nil {

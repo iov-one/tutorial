@@ -203,16 +203,16 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		trader = x.MainSigner(ctx, h.auth).Address()
 	}
 
-	side := Side_Ask
+	askSide := true
 	if msg.Offer.Ticker == ob.BidTicker {
-		side = Side_Bid
+		askSide = false
 	}
 
 	order := &Order{
 		Metadata:       &weave.Metadata{},
 		OrderBookID:    msg.OrderBookID,
 		Trader:         trader,
-		Side:           side,
+		IsAsk:          askSide,
 		OrderState:     OrderState_Open,
 		OriginalOffer:  msg.Offer,
 		RemainingOffer: msg.Offer,

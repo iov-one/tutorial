@@ -33,14 +33,6 @@ enum OrderState {
   ORDER_STATE_CANCEL = 3 [(gogoproto.enumvalue_customname) = "Cancel"];
 }
 
-// Side determines which side of the orderbook we are on (ask or bid)
-// This defines the appropriate ticker (ask_ticker or bid_ticker)
-enum Side {
-  SIDE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
-  SIDE_ASK = 1 [(gogoproto.enumvalue_customname) = "Ask"];
-  SIDE_BID = 2 [(gogoproto.enumvalue_customname) = "Bid"];
-}
-
 // Order is a request to make a trade.
 // We create an order for every trade request, even if it settles immediately,
 // in order to provide history and clean auditability of the market.
@@ -50,15 +42,16 @@ message Order {
   // Address of trader that created order (ad gets paid from it)
   bytes trader = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   bytes order_book_id = 4 [(gogoproto.customname) = "OrderBookID"];
-  Side side = 5;
+  // IsAsk is true for Ask side, false for Bid side
+  bool is_ask = 5;
   OrderState order_state = 6;
   // The amount maker want to sell/buy
   coin.Coin original_offer = 7;
   // Remaning offer. (This part enables partially filled orders)
   coin.Coin remaining_offer = 8;
   // Price defines how many units of Bid we will offer for one unit of Ask
-  // If Side == Ask, we sell ask and accept any price HIGHER
-  // If Side == Bid, we buy ask and accept any price LOWER
+  // If it IsAsk, we sell ask and accept any price HIGHER
+  // If it !IsAsk (IsBid), we buy ask and accept any price LOWER
   Amount price = 9;
   // created_at defines create time of an order
   int64 created_at = 10 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
@@ -142,8 +135,8 @@ message CreateOrderMsg {
   // Offer is how much will be paid
   coin.Coin offer = 4;
   // Price defines how many units of Bid we will offer for one unit of Ask
-  // If Side == Ask, we sell ask and accept any price HIGHER
-  // If Side == Bid, we buy ask and accept any price LOWER
+  // If it is Ask, we sell ask and accept any price HIGHER
+  // If it is Bid, we buy ask and accept any price LOWER
   Amount price = 5;
 }
 

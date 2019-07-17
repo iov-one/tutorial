@@ -108,7 +108,7 @@ func (o *Order) Copy() orm.CloneableData {
 		ID:             copyBytes(o.ID),
 		Trader:         copyBytes(o.Trader),
 		OrderBookID:    copyBytes(o.OrderBookID),
-		Side:           o.Side,
+		IsAsk:          o.IsAsk,
 		OrderState:     o.OrderState,
 		OriginalOffer:  o.OriginalOffer.Clone(),
 		RemainingOffer: o.RemainingOffer.Clone(),
@@ -131,9 +131,6 @@ func (o *Order) Validate() error {
 	}
 	if err := isGenID(o.OrderBookID, false); err != nil {
 		return errors.Wrap(err, "order book id")
-	}
-	if o.Side != Side_Ask && o.Side != Side_Bid {
-		return errors.Wrap(errors.ErrState, "side")
 	}
 	if o.OrderState != OrderState_Open && o.OrderState != OrderState_Done && o.OrderState != OrderState_Cancel {
 		return errors.Wrap(errors.ErrState, "order state")
