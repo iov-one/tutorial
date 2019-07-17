@@ -17,8 +17,9 @@ USER := $(shell id -u):$(shell id -g)
 DOCKER_BASE := docker run --rm --user=${USER} -v $(shell pwd):/work iov1/prototool:v0.2.2
 PROTOTOOL := $(DOCKER_BASE) prototool
 PROTOC := $(DOCKER_BASE) protoc
+WEAVEDIR=$(shell go list -m -f '{{.Dir}}' github.com/iov-one/weave)
 
-all: clean test install
+all: clean import-spec test install
 
 clean:
 	rm -f ${BUILDOUT}
@@ -59,3 +60,8 @@ protodocs:
 
 protoc: protolint protofmt
 	$(PROTOTOOL) generate
+
+import-spec:
+	@rm -rf spec
+	@mkdir -p spec/github.com/iov-one
+	@cp -r $(WEAVEDIR)/spec/gogo spec/github.com/iov-one/weave
