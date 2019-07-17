@@ -9,7 +9,7 @@ import "github.com/iov-one/weave/x/sigs/codec.proto";
 message Tx {
   // msg is a sum type over all allowed messages on this chain.
   oneof sum {
-    cash.SendMsg send_msg = 1;
+    cash.SendMsg send_msg = 51;
     // space here to allow many more....
 
   }
