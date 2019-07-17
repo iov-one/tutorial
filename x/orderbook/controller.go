@@ -132,12 +132,24 @@ func (c controller) payout(db weave.KVStore, from *Order, to weave.Address, amou
 	}
 	rem, err := from.RemainingOffer.Subtract(amount)
 	if err != nil {
-		return errors.Wrap(err, "deducting ask tokens")
+		return errors.Wrap(err, "deducting balance from trade")
 	}
 	from.RemainingOffer = &rem
 	from.UpdatedAt = now
-	if from.RemainingOffer.IsZero() {
-		// TODO: remember the hanging chads (rr... 1 fractional)
+
+	// closeTrade checks if the trade is so small to close it out.
+	// eg. 1 fractional will never settle and should just be returned to the owner
+	// (in the future add other strategies here)
+	if c.closeTrade(from) {
+		if !from.RemainingOffer.IsZero() {
+			// send the rest back
+			err := c.mover.MoveCoins(db, from.Address(), from.Trader, *from.RemainingOffer)
+			if err != nil {
+				return errors.Wrap(err, "returning remaining funds")
+			}
+			// and zero out the balance
+			from.RemainingOffer = &coin.Coin{Ticker: from.RemainingOffer.Ticker}
+		}
 		from.OrderState = OrderState_Done
 	}
 	if err := c.orderBucket.Put(db, from); err != nil {
@@ -146,10 +158,17 @@ func (c controller) payout(db weave.KVStore, from *Order, to weave.Address, amou
 	return nil
 }
 
-func amountToSettle(ask *Order, bid *Order, price *Amount) (askVal, bidVal coin.Coin, err error) {
-	// TODO: how to handler remainders and rounding?
-	// can we be left with an amountToSmall to ever settle?
+// closeTrade returns true if the order is too small and should be closed out
+func (c controller) closeTrade(order *Order) bool {
+	// let's be dumb here, anything below 1 is closed out.
+	// we can do better (like figure out what would be claimed by 1 unit of the other side, etc)
+	if order.RemainingOffer.Whole < 1 {
+		return true
+	}
+	return false
+}
 
+func amountToSettle(ask *Order, bid *Order, price *Amount) (askVal, bidVal coin.Coin, err error) {
 	askVal = *ask.RemainingOffer
 	bidVal, err = price.Multiply(askVal)
 	if err != nil {
