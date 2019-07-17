@@ -126,9 +126,9 @@ type CreateOrderHandler struct {
 
 var _ weave.Handler = CreateOrderHandler{}
 
-// NewCreateOrderHandler creates a handler that allows issuer to
-// create orderbooks. Only owner/admin of the market can issue
-// new orderbooks
+// NewCreateOrderHandler creates a handler that allows anyone to
+// create an order. It may be matched immediately or later.
+// And can be manually cancelled later if not fulfilled.
 func NewCreateOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Handler {
 	return CreateOrderHandler{
 		auth:            auth,
@@ -144,8 +144,7 @@ func NewCreateOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Han
 	}
 }
 
-// Check just verifies it is properly formed and returns
-// the cost of executing it.
+// Check just verifies it is properly formed and returns the cost of executing it.
 func (h CreateOrderHandler) Check(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.CheckResult, error) {
 	_, _, err := h.validate(ctx, db, tx)
 	if err != nil {
@@ -185,7 +184,7 @@ func (h CreateOrderHandler) validate(ctx weave.Context, db weave.KVStore, tx wea
 	return &msg, &orderBook, nil
 }
 
-// Deliver creates an orderbook and saves if all preconditions are met
+// Deliver creates an order and saves if all preconditions are met
 func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.DeliverResult, error) {
 	msg, ob, err := h.validate(ctx, db, tx)
 	if err != nil {
@@ -221,7 +220,6 @@ func (h CreateOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weav
 		UpdatedAt:      now,
 	}
 
-	// Save Order
 	if err := h.orderBucket.Put(db, order); err != nil {
 		return nil, err
 	}
@@ -251,9 +249,8 @@ type CancelOrderHandler struct {
 
 var _ weave.Handler = CreateOrderHandler{}
 
-// NewCancelOrderHandler creates a handler that allows issuer to
-// create orderbooks. Only owner/admin of the market can issue
-// new orderbooks
+// NewCancelOrderHandler creates a handler that allows issuer to cancel orders.
+// Only the address that created the order can cancel it
 func NewCancelOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Handler {
 	return CancelOrderHandler{
 		auth:        auth,
@@ -262,8 +259,7 @@ func NewCancelOrderHandler(auth x.Authenticator, mover cash.CoinMover) weave.Han
 	}
 }
 
-// Check just verifies it is properly formed and returns
-// the cost of executing it.
+// Check just verifies it is properly formed and returns the cost of executing it.
 func (h CancelOrderHandler) Check(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.CheckResult, error) {
 	_, err := h.validate(ctx, db, tx)
 	if err != nil {
@@ -301,7 +297,7 @@ func (h CancelOrderHandler) validate(ctx weave.Context, db weave.KVStore, tx wea
 	return &order, nil
 }
 
-// Deliver creates an orderbook and saves if all preconditions are met
+// Deliver cancels an order if all preconditions are met
 func (h CancelOrderHandler) Deliver(ctx weave.Context, db weave.KVStore, tx weave.Tx) (*weave.DeliverResult, error) {
 	order, err := h.validate(ctx, db, tx)
 	if err != nil {
