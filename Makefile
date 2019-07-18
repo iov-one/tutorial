@@ -1,4 +1,4 @@
-.PHONY: all clean build install test tf cover protofmt protoc protolint protodocs
+.PHONY: all clean build install test tf cover protofmt protoc protolint protodocs import-spec
 
 # make sure we turn on go modules
 export GO111MODULE := on
@@ -62,6 +62,6 @@ protoc: protolint protofmt
 	$(PROTOTOOL) generate
 
 import-spec:
-	@rm -rf spec
-	@mkdir -p spec/github.com/iov-one
+	@rm -rf ./spec
+	@mkdir -p spec/github.com/iov-one/weave
 	@cp -r $(WEAVEDIR)/spec/gogo spec/github.com/iov-one/weave
