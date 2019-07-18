@@ -52,3 +52,10 @@ func QueryRouter() weave.QueryRouter {
 	)
 	return r
 }
+
+// Stack wires up a standard router with a standard decorator
+// chain. This can be passed into BaseApp.
+func Stack(minFee coin.Coin) weave.Handler {
+	authFn := Authenticator()
+	return Chain(authFn, minFee).WithHandler(Router(authFn))
+}
