@@ -1,10 +1,15 @@
 package app
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/app"
 	"github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/orm"
+	"github.com/iov-one/weave/store/iavl"
 	"github.com/iov-one/weave/x"
 	"github.com/iov-one/weave/x/msgfee"
 	"github.com/iov-one/weave/x/multisig"
@@ -58,4 +63,27 @@ func QueryRouter() weave.QueryRouter {
 func Stack(minFee coin.Coin) weave.Handler {
 	authFn := Authenticator()
 	return Chain(authFn, minFee).WithHandler(Router(authFn))
+}
+
+// CommitKVStore returns an initialized KVStore that persists
+// the data to the named path.
+func CommitKVStore(dbPath string) (weave.CommitKVStore, error) {
+	// memory backed case, just for testing
+	if dbPath == "" {
+		return iavl.MockCommitStore(), nil
+	}
+
+	// Expand the path fully
+	path, err := filepath.Abs(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid Database Name: %s", path)
+	}
+
+	// Some external calls accidentally add a ".db", which is now removed
+	path = strings.TrimSuffix(path, filepath.Ext(path))
+
+	// Split the database name into it's components (dir, name)
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+	return iavl.NewCommitStore(dir, name), nil
 }
