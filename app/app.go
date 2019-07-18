@@ -1,10 +1,11 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
-	
+
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/app"
 	"github.com/iov-one/weave/coin"
@@ -86,4 +87,19 @@ func CommitKVStore(dbPath string) (weave.CommitKVStore, error) {
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)
 	return iavl.NewCommitStore(dir, name), nil
+}
+
+// Application constructs a basic ABCI application with
+// the given arguments. 
+func Application(name string, h weave.Handler,
+	tx weave.TxDecoder, dbPath string, debug bool) (app.BaseApp, error) {
+
+	ctx := context.Background()
+	kv, err := CommitKVStore(dbPath)
+	if err != nil {
+		return app.BaseApp{}, err
+	}
+	store := app.NewStoreApp(name, kv, QueryRouter(), ctx)
+	base := app.NewBaseApp(store, tx, h, nil, debug)
+	return base, nil
 }
