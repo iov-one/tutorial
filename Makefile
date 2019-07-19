@@ -64,4 +64,4 @@ protoc: protolint protofmt
 import-spec:
 	@rm -rf ./spec
 	@mkdir -p spec/github.com/iov-one/weave
-	@cp -r ${WEAVEDIR}/spec/gogo spec/github.com/iov-one/weave
+	@cp -r ${WEAVEDIR}/spec/gogo/* spec/github.com/iov-one/weave
