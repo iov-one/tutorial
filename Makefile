@@ -19,7 +19,7 @@ PROTOTOOL := $(DOCKER_BASE) prototool
 PROTOC := $(DOCKER_BASE) protoc
 WEAVEDIR=$(shell go list -m -f '{{.Dir}}' github.com/iov-one/weave)
 
-all: clean import-spec test install
+all: clean test import-spec install
 
 clean:
 	rm -f ${BUILDOUT}
