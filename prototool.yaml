@@ -8,12 +8,12 @@ protoc:
   includes:
     - .
     - /usr/include
-    - extern
-    - extern/github.com/iov-one/weave
+    - spec
+    - spec/github.com/iov-one/weave
 
 excludes:
   - .git
-  - extern
+  - spec
 
 generate:
   go_options:
