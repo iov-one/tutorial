@@ -1,4 +1,3 @@
-
 package app
 
 import (
@@ -15,11 +14,11 @@ import (
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/migration"
 	"github.com/iov-one/weave/x/cash"
-	"github.com/iov-one/weave/x/validators"
-	"github.com/iov-one/weave/x/multisig"
 	"github.com/iov-one/weave/x/currency"
 	"github.com/iov-one/weave/x/msgfee"
-	abci "github.com/tendermint/tendermint/abci/types"	
+	"github.com/iov-one/weave/x/multisig"
+	"github.com/iov-one/weave/x/validators"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -65,6 +64,13 @@ func GenInitOptions(args []string) (json.RawMessage, error) {
 				},
 			},
 		},
+		"currencies": array{
+			dict{
+				"ticker": "IDEX",
+				"name":   "Native Exchange TOKEN",
+			},
+		},
+
 		"conf": dict{
 			"cash": cash.Configuration{
 				CollectorAddress: collectorAddr,
