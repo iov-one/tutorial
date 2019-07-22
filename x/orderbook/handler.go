@@ -22,7 +22,7 @@ func RegisterQuery(qr weave.QueryRouter) {
 func RegisterRoutes(r weave.Registry, auth x.Authenticator) {
 	r = migration.SchemaMigratingRegistry(packageName, r)
 
-	r.Handle(CreateOrderBookMsg{}.Path(), NewOrderBookHandler(auth))
+	r.Handle(&CreateOrderBookMsg{}, NewOrderBookHandler(auth))
 }
 
 // ------------------- ORDERBOOK HANDLER -------------------
