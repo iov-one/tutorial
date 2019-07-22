@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package orderbook;
 
-import "github.com/iov-one/weave/codec.proto";
-import "github.com/iov-one/weave/coin/codec.proto";
+import "codec.proto";
+import "coin/codec.proto";
 import "gogoproto/gogo.proto";
 
 //------------------- STATE -------------------

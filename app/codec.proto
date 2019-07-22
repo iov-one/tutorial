@@ -2,16 +2,15 @@ syntax = "proto3";
 
 package app;
 
-import "gogoproto/gogo.proto";
 import "github.com/iov-one/weave/x/cash/codec.proto";
 import "github.com/iov-one/weave/x/sigs/codec.proto";
+import "gogoproto/gogo.proto";
 import "x/orderbook/codec.proto";
 
 // Tx contains the message
 message Tx {
   // fee info, autogenerates GetFees()
   cash.FeeInfo fees = 20;
-
   repeated sigs.StdSignature signatures = 21;
   // ID of a multisig contract.
   repeated bytes multisig = 4;
