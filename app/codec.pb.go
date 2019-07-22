@@ -5,7 +5,9 @@ package app
 
 import (
 	fmt "fmt"
+	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	orderbook "github.com/iov-one/tutorial/x/orderbook"
 	cash "github.com/iov-one/weave/x/cash"
 	sigs "github.com/iov-one/weave/x/sigs"
 	io "io"
@@ -25,15 +27,19 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 // Tx contains the message
 type Tx struct {
+	// fee info, autogenerates GetFees()
+	Fees       *cash.FeeInfo        `protobuf:"bytes,20,opt,name=fees,proto3" json:"fees,omitempty"`
+	Signatures []*sigs.StdSignature `protobuf:"bytes,21,rep,name=signatures,proto3" json:"signatures,omitempty"`
+	// ID of a multisig contract.
+	Multisig [][]byte `protobuf:"bytes,4,rep,name=multisig,proto3" json:"multisig,omitempty"`
 	// msg is a sum type over all allowed messages on this chain.
 	//
 	// Types that are valid to be assigned to Sum:
 	//	*Tx_SendMsg
+	//	*Tx_CreateOrderbookMsg
+	//	*Tx_CreateOrderMsg
+	//	*Tx_CancelOrderMsg
 	Sum isTx_Sum `protobuf_oneof:"sum"`
-	// fee info, autogenerates GetFees()
-	Fees *cash.FeeInfo `protobuf:"bytes,20,opt,name=fees,proto3" json:"fees,omitempty"`
-	// signatures, autogenerates GetSignatures()
-	Signatures []*sigs.StdSignature `protobuf:"bytes,21,rep,name=signatures,proto3" json:"signatures,omitempty"`
 }
 
 func (m *Tx) Reset()         { *m = Tx{} }
@@ -76,21 +82,26 @@ type isTx_Sum interface {
 }
 
 type Tx_SendMsg struct {
-	SendMsg *cash.SendMsg `protobuf:"bytes,1,opt,name=send_msg,json=sendMsg,proto3,oneof"`
+	SendMsg *cash.SendMsg `protobuf:"bytes,51,opt,name=send_msg,json=sendMsg,proto3,oneof"`
+}
+type Tx_CreateOrderbookMsg struct {
+	CreateOrderbookMsg *orderbook.CreateOrderBookMsg `protobuf:"bytes,100,opt,name=create_orderbook_msg,json=createOrderbookMsg,proto3,oneof"`
+}
+type Tx_CreateOrderMsg struct {
+	CreateOrderMsg *orderbook.CreateOrderMsg `protobuf:"bytes,101,opt,name=create_order_msg,json=createOrderMsg,proto3,oneof"`
+}
+type Tx_CancelOrderMsg struct {
+	CancelOrderMsg *orderbook.CancelOrderMsg `protobuf:"bytes,102,opt,name=cancel_order_msg,json=cancelOrderMsg,proto3,oneof"`
 }
 
-func (*Tx_SendMsg) isTx_Sum() {}
+func (*Tx_SendMsg) isTx_Sum()            {}
+func (*Tx_CreateOrderbookMsg) isTx_Sum() {}
+func (*Tx_CreateOrderMsg) isTx_Sum()     {}
+func (*Tx_CancelOrderMsg) isTx_Sum()     {}
 
 func (m *Tx) GetSum() isTx_Sum {
 	if m != nil {
 		return m.Sum
-	}
-	return nil
-}
-
-func (m *Tx) GetSendMsg() *cash.SendMsg {
-	if x, ok := m.GetSum().(*Tx_SendMsg); ok {
-		return x.SendMsg
 	}
 	return nil
 }
@@ -109,10 +120,48 @@ func (m *Tx) GetSignatures() []*sigs.StdSignature {
 	return nil
 }
 
+func (m *Tx) GetMultisig() [][]byte {
+	if m != nil {
+		return m.Multisig
+	}
+	return nil
+}
+
+func (m *Tx) GetSendMsg() *cash.SendMsg {
+	if x, ok := m.GetSum().(*Tx_SendMsg); ok {
+		return x.SendMsg
+	}
+	return nil
+}
+
+func (m *Tx) GetCreateOrderbookMsg() *orderbook.CreateOrderBookMsg {
+	if x, ok := m.GetSum().(*Tx_CreateOrderbookMsg); ok {
+		return x.CreateOrderbookMsg
+	}
+	return nil
+}
+
+func (m *Tx) GetCreateOrderMsg() *orderbook.CreateOrderMsg {
+	if x, ok := m.GetSum().(*Tx_CreateOrderMsg); ok {
+		return x.CreateOrderMsg
+	}
+	return nil
+}
+
+func (m *Tx) GetCancelOrderMsg() *orderbook.CancelOrderMsg {
+	if x, ok := m.GetSum().(*Tx_CancelOrderMsg); ok {
+		return x.CancelOrderMsg
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*Tx) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _Tx_OneofMarshaler, _Tx_OneofUnmarshaler, _Tx_OneofSizer, []interface{}{
 		(*Tx_SendMsg)(nil),
+		(*Tx_CreateOrderbookMsg)(nil),
+		(*Tx_CreateOrderMsg)(nil),
+		(*Tx_CancelOrderMsg)(nil),
 	}
 }
 
@@ -121,8 +170,23 @@ func _Tx_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	// sum
 	switch x := m.Sum.(type) {
 	case *Tx_SendMsg:
-		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(51<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.SendMsg); err != nil {
+			return err
+		}
+	case *Tx_CreateOrderbookMsg:
+		_ = b.EncodeVarint(100<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CreateOrderbookMsg); err != nil {
+			return err
+		}
+	case *Tx_CreateOrderMsg:
+		_ = b.EncodeVarint(101<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CreateOrderMsg); err != nil {
+			return err
+		}
+	case *Tx_CancelOrderMsg:
+		_ = b.EncodeVarint(102<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CancelOrderMsg); err != nil {
 			return err
 		}
 	case nil:
@@ -135,13 +199,37 @@ func _Tx_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _Tx_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*Tx)
 	switch tag {
-	case 1: // sum.send_msg
+	case 51: // sum.send_msg
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		msg := new(cash.SendMsg)
 		err := b.DecodeMessage(msg)
 		m.Sum = &Tx_SendMsg{msg}
+		return true, err
+	case 100: // sum.create_orderbook_msg
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(orderbook.CreateOrderBookMsg)
+		err := b.DecodeMessage(msg)
+		m.Sum = &Tx_CreateOrderbookMsg{msg}
+		return true, err
+	case 101: // sum.create_order_msg
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(orderbook.CreateOrderMsg)
+		err := b.DecodeMessage(msg)
+		m.Sum = &Tx_CreateOrderMsg{msg}
+		return true, err
+	case 102: // sum.cancel_order_msg
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(orderbook.CancelOrderMsg)
+		err := b.DecodeMessage(msg)
+		m.Sum = &Tx_CancelOrderMsg{msg}
 		return true, err
 	default:
 		return false, nil
@@ -154,7 +242,22 @@ func _Tx_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.Sum.(type) {
 	case *Tx_SendMsg:
 		s := proto.Size(x.SendMsg)
-		n += 1 // tag and wire
+		n += 2 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Tx_CreateOrderbookMsg:
+		s := proto.Size(x.CreateOrderbookMsg)
+		n += 2 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Tx_CreateOrderMsg:
+		s := proto.Size(x.CreateOrderMsg)
+		n += 2 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Tx_CancelOrderMsg:
+		s := proto.Size(x.CancelOrderMsg)
+		n += 2 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -171,22 +274,29 @@ func init() {
 func init() { proto.RegisterFile("app/codec.proto", fileDescriptor_e43b82f4f03f64b8) }
 
 var fileDescriptor_e43b82f4f03f64b8 = []byte{
-	// 231 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4f, 0x2c, 0x28, 0xd0,
-	0x4f, 0xce, 0x4f, 0x49, 0x4d, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0x28,
-	0x90, 0xd2, 0x4e, 0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0xcf, 0xcc, 0x2f,
-	0xd3, 0xcd, 0xcf, 0x4b, 0xd5, 0x2f, 0x4f, 0x4d, 0x2c, 0x4b, 0xd5, 0xaf, 0xd0, 0x4f, 0x4e, 0x2c,
-	0xce, 0x40, 0xd6, 0x81, 0x57, 0x71, 0x71, 0x66, 0x7a, 0x31, 0xb2, 0x62, 0xa5, 0x3e, 0x46, 0x2e,
-	0xa6, 0x90, 0x0a, 0x21, 0x2d, 0x2e, 0x8e, 0xe2, 0xd4, 0xbc, 0x94, 0xf8, 0xdc, 0xe2, 0x74, 0x09,
-	0x46, 0x05, 0x46, 0x0d, 0x6e, 0x23, 0x5e, 0x3d, 0x90, 0xc1, 0x7a, 0xc1, 0xa9, 0x79, 0x29, 0xbe,
-	0xc5, 0xe9, 0x1e, 0x0c, 0x41, 0xec, 0xc5, 0x10, 0xa6, 0x90, 0x22, 0x17, 0x4b, 0x5a, 0x6a, 0x6a,
-	0xb1, 0x84, 0x08, 0xb2, 0x3a, 0xb7, 0xd4, 0x54, 0xcf, 0xbc, 0xb4, 0xfc, 0x20, 0xb0, 0x94, 0x90,
-	0x11, 0x17, 0x57, 0x71, 0x66, 0x7a, 0x5e, 0x62, 0x49, 0x69, 0x51, 0x6a, 0xb1, 0x84, 0xa8, 0x02,
-	0xb3, 0x06, 0xb7, 0x91, 0x90, 0x1e, 0xc8, 0x72, 0xbd, 0xe0, 0x92, 0x94, 0x60, 0x98, 0x54, 0x10,
-	0x92, 0x2a, 0x27, 0x56, 0x2e, 0xe6, 0xe2, 0xd2, 0x5c, 0x27, 0x89, 0x13, 0x8f, 0xe4, 0x18, 0x2f,
-	0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e, 0x71, 0xc2, 0x63, 0x39, 0x86, 0x0b, 0x8f, 0xe5, 0x18,
-	0x6e, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0xbb, 0xd8, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x0a,
-	0x52, 0xf9, 0x76, 0x23, 0x01, 0x00, 0x00,
+	// 345 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x91, 0xcf, 0x4e, 0x83, 0x40,
+	0x10, 0x87, 0x41, 0xaa, 0x36, 0x5b, 0xff, 0x65, 0x53, 0x23, 0x36, 0x91, 0x54, 0x4f, 0x8d, 0xc6,
+	0x25, 0x69, 0xdf, 0xa0, 0x46, 0xa3, 0x07, 0x63, 0xa4, 0xde, 0x1b, 0x58, 0xa6, 0x5b, 0xd2, 0xc2,
+	0x10, 0x16, 0x6a, 0xdf, 0xc1, 0x8b, 0x8f, 0xe5, 0xb1, 0x47, 0x8f, 0xa6, 0x7d, 0x11, 0xc3, 0xa2,
+	0x15, 0xa2, 0xf1, 0x36, 0xf3, 0x9b, 0x6f, 0xbe, 0x81, 0x2c, 0xd9, 0x77, 0xe3, 0xd8, 0xe6, 0xe8,
+	0x03, 0x67, 0x71, 0x82, 0x29, 0x52, 0xc3, 0x8d, 0xe3, 0xd6, 0x85, 0x08, 0xd2, 0x71, 0xe6, 0x31,
+	0x8e, 0xa1, 0x1d, 0xe0, 0xec, 0x12, 0x23, 0xb0, 0x9f, 0xc1, 0x9d, 0x81, 0x3d, 0xb7, 0xb9, 0x2b,
+	0xc7, 0xe5, 0x8d, 0x7f, 0x61, 0x19, 0x08, 0x59, 0x81, 0x9b, 0x02, 0x05, 0xaa, 0xd2, 0xce, 0xab,
+	0xaf, 0xf4, 0x68, 0x6e, 0x63, 0xe2, 0x43, 0xe2, 0x21, 0x4e, 0xca, 0xf8, 0xd9, 0x8b, 0x41, 0x36,
+	0x9e, 0xe6, 0xf4, 0x94, 0xd4, 0x46, 0x00, 0xd2, 0x6c, 0xb6, 0xf5, 0x4e, 0xa3, 0xbb, 0xcb, 0xf2,
+	0x6f, 0x60, 0x37, 0x00, 0x77, 0xd1, 0x08, 0x1d, 0x35, 0xa2, 0x5d, 0x42, 0x64, 0x20, 0x22, 0x37,
+	0xcd, 0x12, 0x90, 0xe6, 0x61, 0xdb, 0xe8, 0x34, 0xba, 0x94, 0xe5, 0xf7, 0xd9, 0x20, 0xf5, 0x07,
+	0xdf, 0x23, 0xa7, 0x44, 0xd1, 0x16, 0xa9, 0x87, 0xd9, 0x34, 0x0d, 0x64, 0x20, 0xcc, 0x5a, 0xdb,
+	0xe8, 0xec, 0x38, 0xeb, 0x9e, 0x9e, 0x93, 0xba, 0x84, 0xc8, 0x1f, 0x86, 0x52, 0x98, 0xbd, 0xf2,
+	0xd9, 0x01, 0x44, 0xfe, 0xbd, 0x14, 0xb7, 0x9a, 0xb3, 0x2d, 0x8b, 0x92, 0x3e, 0x92, 0x26, 0x4f,
+	0xc0, 0x4d, 0x61, 0xb8, 0xfe, 0x0b, 0xb5, 0xe7, 0xab, 0xbd, 0x13, 0xb6, 0x4e, 0xd9, 0x95, 0xc2,
+	0x1e, 0xf2, 0xbe, 0x8f, 0x38, 0x29, 0x3c, 0x94, 0xff, 0xa4, 0x5e, 0x91, 0xd2, 0x6b, 0x72, 0x50,
+	0x56, 0x2a, 0x1d, 0x28, 0xdd, 0xf1, 0xdf, 0xba, 0x42, 0xb5, 0xc7, 0x2b, 0x89, 0xd2, 0xb8, 0x11,
+	0x87, 0x69, 0x49, 0x33, 0xfa, 0xad, 0x51, 0x48, 0x45, 0x53, 0x49, 0xfa, 0x9b, 0xc4, 0x90, 0x59,
+	0xd8, 0x37, 0xdf, 0x96, 0x96, 0xbe, 0x58, 0x5a, 0xfa, 0xc7, 0xd2, 0xd2, 0x5f, 0x57, 0x96, 0xb6,
+	0x58, 0x59, 0xda, 0xfb, 0xca, 0xd2, 0xbc, 0x2d, 0xf5, 0x5c, 0xbd, 0xcf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x69, 0x83, 0xc9, 0x0c, 0x4f, 0x02, 0x00, 0x00,
 }
 
 func (m *Tx) Marshal() (dAtA []byte, err error) {
@@ -204,12 +314,13 @@ func (m *Tx) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Sum != nil {
-		nn1, err := m.Sum.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if len(m.Multisig) > 0 {
+		for _, b := range m.Multisig {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintCodec(dAtA, i, uint64(len(b)))
+			i += copy(dAtA[i:], b)
 		}
-		i += nn1
 	}
 	if m.Fees != nil {
 		dAtA[i] = 0xa2
@@ -217,11 +328,11 @@ func (m *Tx) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1
 		i++
 		i = encodeVarintCodec(dAtA, i, uint64(m.Fees.Size()))
-		n2, err := m.Fees.MarshalTo(dAtA[i:])
+		n1, err := m.Fees.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n1
 	}
 	if len(m.Signatures) > 0 {
 		for _, msg := range m.Signatures {
@@ -237,13 +348,22 @@ func (m *Tx) MarshalTo(dAtA []byte) (int, error) {
 			i += n
 		}
 	}
+	if m.Sum != nil {
+		nn2, err := m.Sum.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn2
+	}
 	return i, nil
 }
 
 func (m *Tx_SendMsg) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.SendMsg != nil {
-		dAtA[i] = 0xa
+		dAtA[i] = 0x9a
+		i++
+		dAtA[i] = 0x3
 		i++
 		i = encodeVarintCodec(dAtA, i, uint64(m.SendMsg.Size()))
 		n3, err := m.SendMsg.MarshalTo(dAtA[i:])
@@ -251,6 +371,54 @@ func (m *Tx_SendMsg) MarshalTo(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i += n3
+	}
+	return i, nil
+}
+func (m *Tx_CreateOrderbookMsg) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.CreateOrderbookMsg != nil {
+		dAtA[i] = 0xa2
+		i++
+		dAtA[i] = 0x6
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.CreateOrderbookMsg.Size()))
+		n4, err := m.CreateOrderbookMsg.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n4
+	}
+	return i, nil
+}
+func (m *Tx_CreateOrderMsg) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.CreateOrderMsg != nil {
+		dAtA[i] = 0xaa
+		i++
+		dAtA[i] = 0x6
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.CreateOrderMsg.Size()))
+		n5, err := m.CreateOrderMsg.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	return i, nil
+}
+func (m *Tx_CancelOrderMsg) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.CancelOrderMsg != nil {
+		dAtA[i] = 0xb2
+		i++
+		dAtA[i] = 0x6
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.CancelOrderMsg.Size()))
+		n6, err := m.CancelOrderMsg.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
 	}
 	return i, nil
 }
@@ -269,8 +437,11 @@ func (m *Tx) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Sum != nil {
-		n += m.Sum.Size()
+	if len(m.Multisig) > 0 {
+		for _, b := range m.Multisig {
+			l = len(b)
+			n += 1 + l + sovCodec(uint64(l))
+		}
 	}
 	if m.Fees != nil {
 		l = m.Fees.Size()
@@ -281,6 +452,9 @@ func (m *Tx) Size() (n int) {
 			l = e.Size()
 			n += 2 + l + sovCodec(uint64(l))
 		}
+	}
+	if m.Sum != nil {
+		n += m.Sum.Size()
 	}
 	return n
 }
@@ -293,7 +467,43 @@ func (m *Tx_SendMsg) Size() (n int) {
 	_ = l
 	if m.SendMsg != nil {
 		l = m.SendMsg.Size()
-		n += 1 + l + sovCodec(uint64(l))
+		n += 2 + l + sovCodec(uint64(l))
+	}
+	return n
+}
+func (m *Tx_CreateOrderbookMsg) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CreateOrderbookMsg != nil {
+		l = m.CreateOrderbookMsg.Size()
+		n += 2 + l + sovCodec(uint64(l))
+	}
+	return n
+}
+func (m *Tx_CreateOrderMsg) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CreateOrderMsg != nil {
+		l = m.CreateOrderMsg.Size()
+		n += 2 + l + sovCodec(uint64(l))
+	}
+	return n
+}
+func (m *Tx_CancelOrderMsg) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CancelOrderMsg != nil {
+		l = m.CancelOrderMsg.Size()
+		n += 2 + l + sovCodec(uint64(l))
 	}
 	return n
 }
@@ -340,11 +550,11 @@ func (m *Tx) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: Tx: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SendMsg", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Multisig", wireType)
 			}
-			var msglen int
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowCodec
@@ -354,26 +564,23 @@ func (m *Tx) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthCodec
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + byteLen
 			if postIndex < 0 {
 				return ErrInvalidLengthCodec
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := &cash.SendMsg{}
-			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			m.Sum = &Tx_SendMsg{v}
+			m.Multisig = append(m.Multisig, make([]byte, postIndex-iNdEx))
+			copy(m.Multisig[len(m.Multisig)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 20:
 			if wireType != 2 {
@@ -444,6 +651,146 @@ func (m *Tx) Unmarshal(dAtA []byte) error {
 			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 51:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SendMsg", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &cash.SendMsg{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Sum = &Tx_SendMsg{v}
+			iNdEx = postIndex
+		case 100:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreateOrderbookMsg", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &orderbook.CreateOrderBookMsg{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Sum = &Tx_CreateOrderbookMsg{v}
+			iNdEx = postIndex
+		case 101:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreateOrderMsg", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &orderbook.CreateOrderMsg{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Sum = &Tx_CreateOrderMsg{v}
+			iNdEx = postIndex
+		case 102:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CancelOrderMsg", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &orderbook.CancelOrderMsg{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Sum = &Tx_CancelOrderMsg{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
