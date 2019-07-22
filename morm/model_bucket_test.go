@@ -91,29 +91,29 @@ func TestModelBucketPrefixScan(t *testing.T) {
 
 	var loaded Counter
 	iter, err := b.PrefixScan(db, nil, false)
+	key, value, err := iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	assert.Equal(t, cnts[0], loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	assert.Equal(t, cnts[1], loaded)
 
-	iter.Close()
+	iter.Release()
 
 	// validate reverse also works
 	iter, err = b.PrefixScan(db, nil, true)
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	key, value, err = iter.Next()
+	assert.Nil(t, err)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	assert.Equal(t, cnts[len(cnts)-1], loaded)
-	iter.Close()
+	iter.Release()
 
 }
 
@@ -148,40 +148,40 @@ func TestModelBucketIndexScanUnique(t *testing.T) {
 	var loaded Counter
 	iter, err := b.IndexScan(db, "counter", nil, false)
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	key, value, err := iter.Next()
+	assert.Nil(t, err)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get lowest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(1), Count: 1}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get second-lowest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(4), Count: 3}, loaded)
 
-	iter.Close()
+	iter.Release()
 
 	// validate reverse also works
 	iter, err = b.IndexScan(db, "counter", nil, true)
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	key, value, err = iter.Next()
+	assert.Nil(t, err)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get highest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(3), Count: 93}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get second-highest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(2), Count: 17}, loaded)
 
-	iter.Close()
+	iter.Release()
 }
 
 func TestModelBucketIndexScanMulti(t *testing.T) {
@@ -206,66 +206,64 @@ func TestModelBucketIndexScanMulti(t *testing.T) {
 	var loaded Counter
 	iter, err := b.IndexScan(db, "counter", nil, false)
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	key, value, err := iter.Next()
+	assert.Nil(t, err)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get lowest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(1), Count: 1}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get second-lowest value (3)
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(3), Count: 3}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get 3 a second time
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(6), Count: 3}, loaded)
 
 	// repeated loads should not advance
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get 3 a second time
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(6), Count: 3}, loaded)
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get 3 a second time
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(6), Count: 3}, loaded)
 
-	iter.Close()
+	iter.Release()
 
 	// counting backwards
 	iter, err = b.IndexScan(db, "counter", nil, true)
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	key, value, err = iter.Next()
+	assert.Nil(t, err)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
 	// should get lowest value
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(2), Count: 17}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
-	// should get second-lowest value (3)
+	// should get second-lowest value (17)
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(5), Count: 17}, loaded)
 
-	err = iter.Next()
+	key, value, err = iter.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, true, iter.Valid())
-	err = iter.Load(&loaded)
+	err = iter.Load(key, value, &loaded)
 	assert.Nil(t, err)
-	// should get 3 a second time
+	// should get third-lowest value (8)
 	assert.Equal(t, Counter{ID: weavetest.SequenceID(4), Count: 8}, loaded)
 
-	iter.Close()
+	iter.Release()
 
 }
 
