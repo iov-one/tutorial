@@ -2,19 +2,26 @@ syntax = "proto3";
 
 package app;
 
+import "gogoproto/gogo.proto";
 import "github.com/iov-one/weave/x/cash/codec.proto";
 import "github.com/iov-one/weave/x/sigs/codec.proto";
+import "x/orderbook/codec.proto";
 
 // Tx contains the message
 message Tx {
+  // fee info, autogenerates GetFees()
+  cash.FeeInfo fees = 20;
+
+  repeated sigs.StdSignature signatures = 21;
+  // ID of a multisig contract.
+  repeated bytes multisig = 4;
   // msg is a sum type over all allowed messages on this chain.
   oneof sum {
     cash.SendMsg send_msg = 51;
     // space here to allow many more....
 
+    orderbook.CreateOrderBookMsg create_orderbook_msg = 100;
+    orderbook.CreateOrderMsg create_order_msg = 101;
+    orderbook.CancelOrderMsg cancel_order_msg = 102;
   }
-  // fee info, autogenerates GetFees()
-  cash.FeeInfo fees = 20;
-  // signatures, autogenerates GetSignatures()
-  repeated sigs.StdSignature signatures = 21;
 }
