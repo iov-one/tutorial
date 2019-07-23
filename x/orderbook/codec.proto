@@ -12,8 +12,6 @@ import "gogoproto/gogo.proto";
 // We use it where a ticker is impossible (like quantity)
 // For offers where ticker is implied, we still use coin.Coin
 // as we inherit much math from there.
-//
-// TODO: work out how to multiply Amount * Coin
 message Amount {
   // Whole coins, -10^15 < integer < 10^15
   int64 whole = 1;
@@ -33,14 +31,6 @@ enum OrderState {
   ORDER_STATE_CANCEL = 3 [(gogoproto.enumvalue_customname) = "Cancel"];
 }
 
-// Side determines which side of the orderbook we are on (ask or bid)
-// This defines the appropriate ticker (ask_ticker or bid_ticker)
-enum Side {
-  SIDE_INVALID = 0 [(gogoproto.enumvalue_customname) = "Invalid"];
-  SIDE_ASK = 1 [(gogoproto.enumvalue_customname) = "Ask"];
-  SIDE_BID = 2 [(gogoproto.enumvalue_customname) = "Bid"];
-}
-
 // Order is a request to make a trade.
 // We create an order for every trade request, even if it settles immediately,
 // in order to provide history and clean auditability of the market.
@@ -50,20 +40,21 @@ message Order {
   // Address of trader that created order (ad gets paid from it)
   bytes trader = 3 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   bytes order_book_id = 4 [(gogoproto.customname) = "OrderBookID"];
-  Side side = 5;
+  // IsAsk is true for Ask side, false for Bid side
+  bool is_ask = 5;
   OrderState order_state = 6;
   // The amount maker want to sell/buy
   coin.Coin original_offer = 7;
   // Remaning offer. (This part enables partially filled orders)
   coin.Coin remaining_offer = 8;
-  // Price for each unit (in tickers of the opposite currency from our side)
+  // Price defines how many units of Bid we will offer for one unit of Ask
+  // If it IsAsk, we sell ask and accept any price HIGHER
+  // If it !IsAsk (IsBid), we buy ask and accept any price LOWER
   Amount price = 9;
-  // Executed trades (referenced ids)
-  repeated bytes trade_ids = 10;
   // created_at defines create time of an order
-  int64 created_at = 11 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 created_at = 10 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
   // updated_at defines update time of an order
-  int64 updated_at = 12 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 updated_at = 11 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 // Trade is a settled partial/full order
@@ -76,16 +67,19 @@ message Trade {
   weave.Metadata metadata = 1;
   bytes id = 2 [(gogoproto.customname) = "ID"];
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
-  bytes order_id = 4 [(gogoproto.customname) = "OrderID"];
+  // ID of the order that was the taker
+  bytes taker_id = 4 [(gogoproto.customname) = "TakerID"];
+  // ID of the order that was the maker
+  bytes maker_id = 5 [(gogoproto.customname) = "MakerID"];
   // Address of taker (this is an order that was instantly fulfilled)
-  bytes taker = 5 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes taker = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // Address of maker (this is an order that was stored first before fulfillment)
-  bytes maker = 6 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
+  bytes maker = 7 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
   // this is how much each side paid (they got the opposite one)
-  coin.Coin maker_paid = 7;
-  coin.Coin taker_paid = 8;
+  coin.Coin maker_paid = 8;
+  coin.Coin taker_paid = 9;
   // executed_at defines execution time of an order
-  int64 executed_at = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
+  int64 executed_at = 10 [(gogoproto.casttype) = "github.com/iov-one/weave.UnixTime"];
 }
 
 // An Orderbook lives in a market and represents a ask/bid pair.
@@ -138,7 +132,9 @@ message CreateOrderMsg {
   bytes order_book_id = 3 [(gogoproto.customname) = "OrderBookID"];
   // Offer is how much will be paid
   coin.Coin offer = 4;
-  // Price is how much is requested for each unit of the offer token
+  // Price defines how many units of Bid we will offer for one unit of Ask
+  // If it is Ask, we sell ask and accept any price HIGHER
+  // If it is Bid, we buy ask and accept any price LOWER
   Amount price = 5;
 }
 

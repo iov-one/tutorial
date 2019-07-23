@@ -141,6 +141,23 @@ func WithIndex(name string, indexer orm.Indexer, unique bool) ModelBucketOption 
 	}
 }
 
+// WithMultiKeyIndex configures the bucket to build a multiindex with given name. All
+// entities stored in the bucket are indexed using value returned by the
+// indexer function. If an index is unique, there can be only one entity
+// referenced per index value.
+func WithMultiKeyIndex(name string, indexer orm.MultiKeyIndexer, unique bool) ModelBucketOption {
+	return func(mb *modelBucket) {
+		mb.b = mb.b.WithMultiKeyIndex(name, indexer, unique)
+		// Until we get better integration with orm, we need to store some info ourselves here...
+		info := indexInfo{
+			name:   name,
+			prefix: indexPrefix(mb.bucketName, name),
+			unique: unique,
+		}
+		mb.indices = append(mb.indices, info)
+	}
+}
+
 func indexPrefix(bucketName, indexName string) []byte {
 	path := "_i." + bucketName + "_" + indexName + ":"
 	return []byte(path)

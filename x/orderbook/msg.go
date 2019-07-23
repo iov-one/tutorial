@@ -15,12 +15,6 @@ func init() {
 	migration.MustRegister(1, &CancelOrderMsg{}, migration.NoModification)
 }
 
-const (
-	pathCreateOrderBook = "order/create_book"
-	pathCreateOrder     = "order/create"
-	pathCancelOrder     = "order/cancel"
-)
-
 var _ weave.Msg = (*CreateOrderBookMsg)(nil)
 var _ weave.Msg = (*CreateOrderMsg)(nil)
 var _ weave.Msg = (*CancelOrderMsg)(nil)
@@ -28,15 +22,15 @@ var _ weave.Msg = (*CancelOrderMsg)(nil)
 // ROUTING, Path method fulfills weave.Msg interface to allow routing
 
 func (CreateOrderBookMsg) Path() string {
-	return pathCreateOrderBook
+	return "order/create_book"
 }
 
 func (CreateOrderMsg) Path() string {
-	return pathCreateOrder
+	return "order/create"
 }
 
 func (CancelOrderMsg) Path() string {
-	return pathCancelOrder
+	return "order/cancel"
 }
 
 func (m CreateOrderBookMsg) Validate() error {

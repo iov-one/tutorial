@@ -32,12 +32,16 @@ func TestMarketIDindexer(t *testing.T) {
 			expected: marketID,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.value nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not orderbook": {
 			obj:      orm.NewSimpleObj(nil, new(Order)),
 			expected: nil,
@@ -110,12 +114,16 @@ func TestMarketIDTickersIndexer(t *testing.T) {
 			expected: expectedIndex3,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.value nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not orderbook": {
 			obj:      orm.NewSimpleObj(nil, new(Order)),
 			expected: nil,
@@ -140,13 +148,12 @@ func TestOpenOrderIndexer(t *testing.T) {
 	onceUponATime := weave.AsUnixTime(time.Time{})
 
 	orderBookID := weavetest.SequenceID(5)
-	side := Side_Ask
 
 	openOrder := &Order{
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Open,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
@@ -159,7 +166,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Done,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
@@ -172,7 +179,7 @@ func TestOpenOrderIndexer(t *testing.T) {
 		Metadata:       &weave.Metadata{Schema: 1},
 		Trader:         weavetest.NewCondition().Address(),
 		OrderBookID:    orderBookID,
-		Side:           side,
+		IsAsk:          true,
 		OrderState:     OrderState_Cancel,
 		OriginalOffer:  coin.NewCoinp(100, 0, "ETH"),
 		RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
@@ -193,22 +200,26 @@ func TestOpenOrderIndexer(t *testing.T) {
 			expected: successCaseExpectedValue,
 			wantErr:  nil,
 		},
-		"failure, order state done": {
+		"empty, order state done": {
 			obj:      orm.NewSimpleObj(nil, doneOrder),
 			expected: nil,
 			wantErr:  nil,
 		},
-		"failure, order state cancel": {
+		"empty, order state cancel": {
 			obj:      orm.NewSimpleObj(nil, cancelledOrder),
 			expected: nil,
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() is nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"failure not order": {
 			obj:      orm.NewSimpleObj(nil, new(OrderBook)),
 			expected: nil,
@@ -233,7 +244,8 @@ func TestOrderIDindexer(t *testing.T) {
 
 	trade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(14),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -244,20 +256,24 @@ func TestOrderIDindexer(t *testing.T) {
 
 	cases := map[string]struct {
 		obj      orm.Object
-		expected []byte
+		expected [][]byte
 		wantErr  *errors.Error
 	}{
 		"success": {
 			obj:      orm.NewSimpleObj(nil, trade),
-			expected: trade.OrderID,
+			expected: [][]byte{trade.MakerID, trade.TakerID},
 			wantErr:  nil,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"not trade": {
 			obj:      orm.NewSimpleObj(nil, new(OrderBook)),
 			expected: nil,
@@ -267,7 +283,7 @@ func TestOrderIDindexer(t *testing.T) {
 
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			index, err := orderIDIndexer(tc.obj)
+			index, err := orderIDMultiIndexer(tc.obj)
 
 			if !tc.wantErr.Is(err) {
 				t.Fatalf("unexpected error: %+v", err)
@@ -283,7 +299,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 
 	validTrade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(14),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -294,7 +311,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 
 	invalidTrade := &Trade{
 		Metadata:    &weave.Metadata{Schema: 1},
-		OrderID:     weavetest.SequenceID(13),
+		TakerID:     weavetest.SequenceID(22),
+		MakerID:     weavetest.SequenceID(14),
 		OrderBookID: weavetest.SequenceID(2),
 		Taker:       weavetest.NewCondition().Address(),
 		Maker:       weavetest.NewCondition().Address(),
@@ -303,7 +321,8 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 		ExecutedAt:  invalidTime,
 	}
 
-	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 1}
+	// the index is by order*book* and time, not by the orders
+	successCaseExpectedValue := []byte{0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1}
 
 	cases := map[string]struct {
 		obj      orm.Object
@@ -320,12 +339,16 @@ func TestOrderBookTimedIndexer(t *testing.T) {
 			expected: nil,
 			wantErr:  errors.ErrState,
 		},
-		"failure, obj is nil": {
+		"empty, obj is nil": {
 			obj:      nil,
 			expected: nil,
 			wantErr:  nil,
 		},
-		// TODO add obj.Value() nil case
+		"empty, obj has nil value": {
+			obj:      orm.NewSimpleObj(nil, nil),
+			expected: nil,
+			wantErr:  nil,
+		},
 		"invalid execution time": {
 			obj:      orm.NewSimpleObj(nil, invalidTrade),
 			expected: nil,

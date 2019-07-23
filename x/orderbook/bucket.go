@@ -109,7 +109,7 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 	if !ok {
 		return nil, errors.Wrapf(errors.ErrState, "expected order, got %T", obj.Value())
 	}
-	return BuildOpenOrderIndex(order)
+	return BuildOpenOrderIndex(order.OrderBookID, order.OrderState, order.IsAsk, order.Price)
 }
 
 // BuildOpenOrderIndex produces a compound index like:
@@ -122,20 +122,30 @@ func openOrderIndexer(obj orm.Object) ([]byte, error) {
 //   A.Lexographic() < B.Lexographic == A < B
 //
 // This is a very nice trick to get clean range queries over sensible value ranges in a key-value store
-func BuildOpenOrderIndex(order *Order) ([]byte, error) {
+func BuildOpenOrderIndex(orderBookID []byte, state OrderState, isAsk bool, price *Amount) ([]byte, error) {
 	// we don't index if state isn't open
-	if order.OrderState != OrderState_Open {
+	if state != OrderState_Open {
 		return nil, nil
 	}
 
-	res := make([]byte, 9+16)
-	copy(res, order.OrderBookID)
-	res[8] = byte(order.Side)
-	lex, err := order.Price.Lexographic()
+	res := make([]byte, 9, 9+16)
+	copy(res, orderBookID)
+	if isAsk {
+		res[8] = 1
+	} else {
+		res[8] = 2
+	}
+
+	// if price is nil, just return the prefix for scanning
+	if price == nil {
+		return res, nil
+	}
+
+	lex, err := price.Lexographic()
 	if err != nil {
 		return nil, errors.Wrap(err, "building order index")
 	}
-	copy(res[9:], lex)
+	res = append(res, lex...)
 	return res, nil
 }
 
@@ -145,7 +155,7 @@ type TradeBucket struct {
 
 func NewTradeBucket() *TradeBucket {
 	b := morm.NewModelBucket("trade", &Trade{},
-		morm.WithIndex("order", orderIDIndexer, false),
+		morm.WithMultiKeyIndex("order", orderIDMultiIndexer, false),
 		morm.WithIndex("orderbook", orderBookTimedIndexer, false),
 	)
 	return &TradeBucket{
@@ -153,9 +163,9 @@ func NewTradeBucket() *TradeBucket {
 	}
 }
 
-// orderIDIndexer indexes by order id to give us easy lookup of all trades
-// that fulfilled a given order
-func orderIDIndexer(obj orm.Object) ([]byte, error) {
+// orderIDIndexer indexes by both maker and taker order id
+// to give us easy lookup of all trades that fulfilled a given order
+func orderIDMultiIndexer(obj orm.Object) ([][]byte, error) {
 	if obj == nil || obj.Value() == nil {
 		return nil, nil
 	}
@@ -163,7 +173,7 @@ func orderIDIndexer(obj orm.Object) ([]byte, error) {
 	if !ok {
 		return nil, errors.Wrapf(errors.ErrState, "expected trade, got %T", obj.Value())
 	}
-	return trade.OrderID, nil
+	return [][]byte{trade.MakerID, trade.TakerID}, nil
 }
 
 // orderBookTimedIndexer indexes trades by
@@ -183,12 +193,12 @@ func orderBookTimedIndexer(obj orm.Object) ([]byte, error) {
 	return BuildOrderBookTimeIndex(trade)
 }
 
-// BuildOpenOrderIndex produces 8 bytes OrderBookID || big-endian ExecutedAt
+// BuildOrderBookTimeIndex produces 8 bytes OrderBookID || big-endian ExecutedAt
 // This allows lexographical searches over the time ranges (or earliest or latest)
 // of all trades within one orderbook
 func BuildOrderBookTimeIndex(trade *Trade) ([]byte, error) {
 	res := make([]byte, 16)
-	copy(res, trade.OrderID)
+	copy(res, trade.OrderBookID)
 	// this would violate lexographical ordering as negatives would be highest
 	if trade.ExecutedAt < 0 {
 		return nil, errors.Wrap(errors.ErrState, "cannot index negative execution times")

@@ -156,7 +156,6 @@ func TestCreateOrderbook(t *testing.T) {
 				t.Fatalf("unexpected deliver error: %+v", err)
 			}
 
-			// TODO: check expected
 			if tc.expected != nil {
 				var stored OrderBook
 				err = orders.One(kv, dres.Data, &stored)

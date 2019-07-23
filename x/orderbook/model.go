@@ -108,12 +108,11 @@ func (o *Order) Copy() orm.CloneableData {
 		ID:             copyBytes(o.ID),
 		Trader:         copyBytes(o.Trader),
 		OrderBookID:    copyBytes(o.OrderBookID),
-		Side:           o.Side,
+		IsAsk:          o.IsAsk,
 		OrderState:     o.OrderState,
 		OriginalOffer:  o.OriginalOffer.Clone(),
 		RemainingOffer: o.RemainingOffer.Clone(),
 		Price:          o.Price.Clone(),
-		TradeIds:       copyBytesList(o.TradeIds),
 		CreatedAt:      o.CreatedAt,
 		UpdatedAt:      o.UpdatedAt,
 	}
@@ -132,9 +131,6 @@ func (o *Order) Validate() error {
 	}
 	if err := isGenID(o.OrderBookID, false); err != nil {
 		return errors.Wrap(err, "order book id")
-	}
-	if o.Side != Side_Ask && o.Side != Side_Bid {
-		return errors.Wrap(errors.ErrState, "side")
 	}
 	if o.OrderState != OrderState_Open && o.OrderState != OrderState_Done && o.OrderState != OrderState_Cancel {
 		return errors.Wrap(errors.ErrState, "order state")
@@ -157,7 +153,6 @@ func (o *Order) Validate() error {
 	if !o.Price.IsPositive() {
 		return errors.Wrap(errors.ErrState, "price must be positive")
 	}
-	// TODO: valid trade ids (also rethink how we handle this? just use index and not in model?)
 
 	if err := o.UpdatedAt.Validate(); err != nil {
 		return errors.Wrap(err, "updated at")
@@ -188,7 +183,8 @@ func (t *Trade) Copy() orm.CloneableData {
 		Metadata:    t.Metadata.Copy(),
 		ID:          copyBytes(t.ID),
 		OrderBookID: copyBytes(t.OrderBookID),
-		OrderID:     copyBytes(t.OrderID),
+		TakerID:     copyBytes(t.TakerID),
+		MakerID:     copyBytes(t.MakerID),
 		Taker:       copyBytes(t.Taker),
 		Maker:       copyBytes(t.Maker),
 		MakerPaid:   t.MakerPaid.Clone(),
@@ -208,8 +204,11 @@ func (o *Trade) Validate() error {
 	if err := isGenID(o.OrderBookID, false); err != nil {
 		return errors.Wrap(err, "order book id")
 	}
-	if err := isGenID(o.OrderID, false); err != nil {
-		return errors.Wrap(err, "order  id")
+	if err := isGenID(o.MakerID, false); err != nil {
+		return errors.Wrap(err, "maker id")
+	}
+	if err := isGenID(o.TakerID, false); err != nil {
+		return errors.Wrap(err, "taker id")
 	}
 	if err := o.Taker.Validate(); err != nil {
 		return errors.Wrap(err, "taker")
