@@ -9,13 +9,9 @@ import (
 )
 
 type ModelIterator interface {
-	// Next moves the iterator to the next sequential key in the database, as
-	// defined by order of iteration.
-	Next() (key, value []byte, err error)
-
-	// Load reads the current value at the given key into the passed destination.
-	// This works much like "One" in ModelBucket
-	Load(key, value []byte, dest Model) error
+	// LoadNext moves the iterator to the next sequntial key in the database and
+	// loads the current value at the given key into the passed destination.
+	LoadNext(dest Model) error
 
 	// Release releases the Iterator.
 	Release()
@@ -30,16 +26,17 @@ type idModelIterator struct {
 
 var _ ModelIterator = (*idModelIterator)(nil)
 
-func (i *idModelIterator) Next() (key, value []byte, err error) {
-	return i.iterator.Next()
+func (i *idModelIterator) LoadNext(dest Model) error {
+	key, value, err := i.iterator.Next()
+	if err != nil {
+		return err
+	}
+
+	return load(key, value, i.bucketPrefix, dest)
 }
 
 func (i *idModelIterator) Release() {
 	i.iterator.Release()
-}
-
-func (i *idModelIterator) Load(key, value []byte, dest Model) error {
-	return load(key, value, i.bucketPrefix, dest)
 }
 
 type indexModelIterator struct {
@@ -55,46 +52,60 @@ type indexModelIterator struct {
 
 var _ ModelIterator = (*indexModelIterator)(nil)
 
-func (i *indexModelIterator) Next() (key, value []byte, err error) {
-	if len(i.cachedKeys) > 1 {
-		i.cachedKeys = i.cachedKeys[1:]
-	} else {
-		i.cachedKeys = nil
+// LoadNext loads next iterator value to dest
+func (i *indexModelIterator) LoadNext(dest Model) error {
+	key, err := i.getKey()
+	if err != nil {
+		return err
 	}
-
-	return i.iterator.Next()
-}
-
-func (i *indexModelIterator) Release() {
-	i.iterator.Release()
-}
-
-func (i *indexModelIterator) Load(key, value []byte,dest Model) error {
-	// if we have cached keys, just use those, not the iterator value
-	if len(i.cachedKeys) > 0 {
-		key = i.dbKey(i.cachedKeys[0])
-	} else {
-		keys, err := i.getRefs(value, i.unique)
-		if err != nil {
-			return errors.Wrap(err, "parsing index refs")
-		}
-
-		if len(keys) != 1 {
-			i.cachedKeys = keys
-		}
-		key = i.dbKey(keys[0])
-	}
-
 	val, err := i.kv.Get(key)
+
 	if err != nil {
 		return errors.Wrap(err, "loading referenced key")
 	}
 	if val == nil {
 		return errors.Wrapf(errors.ErrNotFound, "key: %X", key)
 	}
+
 	return load(key, val, i.bucketPrefix, dest)
 }
 
+func (i *indexModelIterator) Release() {
+	i.iterator.Release()
+}
+
+// getKey retrieves the key from cache if i.cacheKeys is not nil, otherwise loads next iterator key
+func (i *indexModelIterator) getKey() ([]byte, error) {
+	var key []byte
+
+	switch cachedKeysLen := len(i.cachedKeys); {
+	case cachedKeysLen > 1:
+		//gets the key from cache and remove first key from i.cacheKey
+		key = i.dbKey(i.cachedKeys[0])
+		i.cachedKeys = i.cachedKeys[1:]
+	case cachedKeysLen == 1:
+		//gets the key from cache and sets i.cachedKeys as nil
+		key = i.dbKey(i.cachedKeys[0])
+		i.cachedKeys = nil
+	default:
+		//retrievesthe key and value from iterator
+		_, value, err := i.iterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		keys, err := i.getRefs(value, i.unique)
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing index refs")
+		}
+		if len(keys) != 1 {
+			i.cachedKeys = keys[1:]
+		}
+		key = i.dbKey(keys[0])
+	}
+
+	return key, nil
+}
 // get refs takes a value stored in an index and parse it into a slice of
 // db keys
 func (i *indexModelIterator) getRefs(val []byte, unique bool) ([][]byte, error) {
@@ -115,8 +126,6 @@ func (i *indexModelIterator) getRefs(val []byte, unique bool) ([][]byte, error) 
 func (i *indexModelIterator) dbKey(key []byte) []byte {
 	return append(i.bucketPrefix, key...)
 }
-
-
 
 func load(key, value, bucketPrefix []byte, dest Model) error {
 	// since we use raw kvstore here, not Bucket, we must remove the bucket prefix manually
