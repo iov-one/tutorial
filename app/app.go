@@ -42,7 +42,7 @@ func Chain(authFn x.Authenticator, minFee coin.Coin) app.Decorators {
 }
 
 // Router returns a default router
-func Router(authFn x.Authenticator) app.Router {
+func Router(authFn x.Authenticator) *app.Router {
 	r := app.NewRouter()
 	// TODO implement orderbook router
 	return r

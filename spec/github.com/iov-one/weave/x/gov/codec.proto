@@ -60,6 +60,8 @@ message ElectionRule {
   // The valid range for the threshold value is `0.5` to `1` (inclusive) which allows any value between half and all
   // of the eligible voters.
   Fraction quorum = 8;
+  // Address of this entity. Set during creation and does not change.
+  bytes address = 9 [(gogoproto.casttype) = "github.com/iov-one/weave.Address"];
 }
 
 // The Fraction type represents a numerator and denominator to enable higher precision thresholds in
@@ -114,7 +116,7 @@ message Proposal {
     // is Withdrawn.
     PROPOSAL_STATUS_WITHDRAWN = 3 [(gogoproto.enumvalue_customname) = "Withdrawn"];
   }
-  // Status represents the high level position in the life cycle of the proposal. Initial value is submitted.
+  // Status represents the high level position in the life cycle of the proposal. Initial value is Submitted.
   Status status = 12;
   enum Result {
     // An empty value is invalid and not allowed
@@ -138,8 +140,11 @@ message Proposal {
     // The executor returned an error and proposed action didn't update state
     PROPOSAL_EXECUTOR_RESULT_FAILURE = 3 [(gogoproto.enumvalue_customname) = "Failure"];
   }
-  // Result is the final result based on the votes and election rule. Initial value is Undefined.
+  // Result is the final result based on the votes and election rule. Initial value is NotRun.
   ExecutorResult executor_result = 14;
+  // Tally task ID holds the ID of the asynchronous task that is scheduled to
+  // create the tally once the voting period is over.
+  bytes tally_task_id = 15 [(gogoproto.customname) = "TallyTaskID"];
 }
 
 // Resolution contains TextResolution and an electorate reference.
@@ -236,7 +241,7 @@ message TallyMsg {
 // TextResolutionMsg is only intended to be dispatched internally from election
 // results. It adds a resolution to the list of "approved" resolutions,
 // with a reference to the electorate that approved it
-message TextResolutionMsg {
+message CreateTextResolutionMsg {
   weave.Metadata metadata = 1;
   string resolution = 2;
 }
@@ -262,4 +267,12 @@ message UpdateElectionRuleMsg {
   // The valid range for the threshold value is `0.5` to `1` (inclusive) which allows any value between half and all
   // of the eligible voters.
   Fraction threshold = 4 [(gogoproto.nullable) = false];
+  // The quorum fraction of eligible voters is based on the total electorate
+  // weight and defines a threshold of votes that must be exceeded before the
+  // acceptance threshold is applied. This value requires any kind of votes
+  // and not only YES.
+  //
+  // The valid range for the threshold value is `0.5` to `1` (inclusive) which
+  // allows any value between half and all of the eligible voters.
+  Fraction quorum = 5;
 }
