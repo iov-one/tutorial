@@ -205,7 +205,7 @@ func (t *Trade) Copy() orm.CloneableData {
 func (t *Trade) Validate() error {
 	var errs error
 
-	//errs = errors.AppendField(errs, "metadata", o.Metadata.Validate())
+	//errs = errors.AppendField(errs, "metadata", t.Metadata.Validate())
 
 	errs = errors.AppendField(errs, "ID", isGenID(t.ID, true))
 	errs = errors.AppendField(errs, "OrderBookID", isGenID(t.OrderBookID, false))

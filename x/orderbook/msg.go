@@ -1,8 +1,6 @@
 package orderbook
 
 import (
-	"fmt"
-
 	"github.com/iov-one/weave"
 	coin "github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/errors"
@@ -38,20 +36,20 @@ func (CancelOrderMsg) Path() string {
 func (m CreateOrderBookMsg) Validate() error {
 	var errs error
 
-	errs = errors.AppendField(errs, "metadata", m.Metadata.Validate())
-	errs = errors.AppendField(errs, "market id", validID(m.MarketID))
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "MarketID", validID(m.MarketID))
 
 	if !coin.IsCC(m.AskTicker) {
 		errs = errors.Append(errs,
-			errors.Field("AskTicker", errors.ErrCurrency, fmt.Sprintf("Invalid ask ticker: %s", m.AskTicker)))
+			errors.Field("AskTicker", errors.ErrCurrency, "invalid ask ticker"))
 	}
 	if !coin.IsCC(m.BidTicker) {
 		errs = errors.Append(errs,
-			errors.Field("BidTicker", errors.ErrCurrency, "Invalid bid ticker"))
+			errors.Field("BidTicker", errors.ErrCurrency, "invalid bid ticker"))
 	}
 	if m.BidTicker <= m.AskTicker {
 		errs = errors.Append(errs,
-			errors.Field("BidTicker", errors.ErrCurrency, fmt.Sprintf("ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)))
+			errors.Field("BidTicker", errors.ErrCurrency, "ask must be before bid"))
 	}
 	return errs
 }
@@ -59,9 +57,9 @@ func (m CreateOrderBookMsg) Validate() error {
 func (m CreateOrderMsg) Validate() error {
 	var errs error
 
-	errs = errors.AppendField(errs, "metadata", m.Metadata.Validate())
-	errs = errors.AppendField(errs, "trader id", m.Trader.Validate())
-	errs = errors.AppendField(errs, "orderbook id", validID(m.OrderBookID))
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "TraderID", m.Trader.Validate())
+	errs = errors.AppendField(errs, "OrderBookID", validID(m.OrderBookID))
 
 	if m.Offer == nil {
 		errs = errors.Append(errs,
@@ -86,7 +84,7 @@ func (m CancelOrderMsg) Validate() error {
 	var errs error
 
 	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
-	errs = errors.AppendField(errs, "order id ", validID(m.OrderID))
+	errs = errors.AppendField(errs, "OrderID", validID(m.OrderID))
 	return errs
 }
 
