@@ -51,7 +51,7 @@ func (m CreateOrderBookMsg) Validate() error {
 	}
 	if m.BidTicker <= m.AskTicker {
 		errs = errors.Append(errs,
-			errors.Field("BidTicker", errors.ErrCurrency, "ask (%s) must be before bid (%s)"))
+			errors.Field("BidTicker", errors.ErrCurrency, fmt.Sprintf("ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)))
 	}
 	return errs
 }
