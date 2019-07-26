@@ -34,60 +34,58 @@ func (CancelOrderMsg) Path() string {
 }
 
 func (m CreateOrderBookMsg) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "metadata")
-	}
-	if err := validID(m.MarketID); err != nil {
-		return errors.Wrap(err, "market id")
-	}
+	var errs error
+
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "MarketID", validID(m.MarketID))
+
 	if !coin.IsCC(m.AskTicker) {
-		return errors.Wrapf(errors.ErrCurrency, "Invalid Ask Ticker: %s", m.AskTicker)
+		errs = errors.Append(errs,
+			errors.Field("AskTicker", errors.ErrCurrency, "invalid ask ticker"))
 	}
 	if !coin.IsCC(m.BidTicker) {
-		return errors.Wrapf(errors.ErrCurrency, "Invalid Bid Ticker: %s", m.BidTicker)
+		errs = errors.Append(errs,
+			errors.Field("BidTicker", errors.ErrCurrency, "invalid bid ticker"))
 	}
 	if m.BidTicker <= m.AskTicker {
-		return errors.Wrapf(errors.ErrCurrency, "ask (%s) must be before bid (%s)", m.AskTicker, m.BidTicker)
+		errs = errors.Append(errs,
+			errors.Field("BidTicker", errors.ErrCurrency, "ask must be before bid"))
 	}
-	return nil
+	return errs
 }
 
 func (m CreateOrderMsg) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "metadata")
-	}
-	if err := m.Trader.Validate(); err != nil {
-		return errors.Wrap(err, "trader id")
-	}
-	if err := validID(m.OrderBookID); err != nil {
-		return errors.Wrap(err, "orderbook id")
-	}
+	var errs error
+
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "TraderID", m.Trader.Validate())
+	errs = errors.AppendField(errs, "OrderBookID", validID(m.OrderBookID))
+
 	if m.Offer == nil {
-		return errors.Wrap(errors.ErrEmpty, "offer")
+		errs = errors.Append(errs,
+			errors.Field("Offer", errors.ErrEmpty, "empty offer"))
+	} else if err := m.Offer.Validate(); err != nil {
+		errs = errors.AppendField(errs, "Offer", err)
+	} else if !m.Offer.IsPositive() {
+		errs = errors.Append(errs,
+			errors.Field("Offer", errors.ErrInput, "offer must be positive"))
 	}
-	if err := m.Offer.Validate(); err != nil {
-		return errors.Wrap(err, "offer")
-	}
-	if !m.Offer.IsPositive() {
-		return errors.Wrap(errors.ErrInput, "offer must be positive")
-	}
+
 	if err := m.Price.Validate(); err != nil {
-		return errors.Wrap(err, "price")
+		errs = errors.AppendField(errs, "Price", err)
+	} else if !m.Price.IsPositive() {
+		errs = errors.Append(errs,
+			errors.Field("Price", errors.ErrInput, "price must be positive"))
 	}
-	if !m.Price.IsPositive() {
-		return errors.Wrap(errors.ErrInput, "price must be positive")
-	}
-	return nil
+	return errs
 }
 
 func (m CancelOrderMsg) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "metadata")
-	}
-	if err := validID(m.OrderID); err != nil {
-		return errors.Wrap(err, "order id")
-	}
-	return nil
+	var errs error
+
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "OrderID", validID(m.OrderID))
+	return errs
 }
 
 // validID returns an error if this is not an 8-byte ID

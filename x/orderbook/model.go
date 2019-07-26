@@ -1,6 +1,7 @@
 package orderbook
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/iov-one/tutorial/morm"
@@ -31,19 +32,18 @@ func (m *Market) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (m *Market) Validate() error {
-	// if err := m.Metadata.Validate(); err != nil {
-	// 	return err
-	// }
-	if err := isGenID(m.ID, true); err != nil {
-		return err
-	}
-	if err := m.Owner.Validate(); err != nil {
-		return errors.Wrap(err, "owner")
-	}
+	var errs error
+
+	//errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "ID", isGenID(m.ID, true))
+	errs = errors.AppendField(errs, "Owner", m.Owner.Validate())
+
 	if !validMarketName(m.Name) {
-		return errors.Wrap(errors.ErrModel, "invalid market name")
+		errs = errors.Append(errs,
+			errors.Field("MarketName", errors.ErrModel, "invalid market name"))
 	}
-	return nil
+
+	return errs
 }
 
 var _ morm.Model = (*OrderBook)(nil)
@@ -69,28 +69,31 @@ func (o *OrderBook) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (o *OrderBook) Validate() error {
-	// if err := o.Metadata.Validate(); err != nil {
-	// 	return err
-	// }
-	if err := isGenID(o.ID, true); err != nil {
-		return err
-	}
-	if err := isGenID(o.MarketID, false); err != nil {
-		return errors.Wrap(err, "market id")
-	}
+	var errs error
+
+	//errs = errors.AppendField(errs, "Metadata", o.Metadata.Validate())
+	errs = errors.AppendField(errs, "ID", isGenID(o.ID, true))
+	errs = errors.AppendField(errs, "MarketID", isGenID(o.MarketID, false))
+
 	if !coin.IsCC(o.AskTicker) {
-		return errors.Wrap(errors.ErrModel, "invalid ask ticker")
+		errs = errors.Append(errs,
+			errors.Field("AskTicker", errors.ErrCurrency, fmt.Sprintf("Invalid ask ticker: %s", o.AskTicker)))
 	}
 	if !coin.IsCC(o.BidTicker) {
-		return errors.Wrap(errors.ErrModel, "invalid bid ticker")
+		errs = errors.Append(errs,
+			errors.Field("BidTicker", errors.ErrCurrency, fmt.Sprintf("Invalid bid ticker: %s", o.BidTicker)))
 	}
+
 	if o.TotalAskCount < 0 {
-		return errors.Wrap(errors.ErrModel, "negative total ask count")
+		errs = errors.Append(errs,
+			errors.Field("TotalAskCount", errors.ErrModel, "negative total ask count"))
 	}
 	if o.TotalBidCount < 0 {
-		return errors.Wrap(errors.ErrModel, "negative total bid count")
+		errs = errors.Append(errs,
+			errors.Field("TotalBidCount", errors.ErrModel, "negative total bid count"))
 	}
-	return nil
+
+	return errs
 }
 
 var _ morm.Model = (*Order)(nil)
@@ -121,57 +124,58 @@ func (o *Order) Copy() orm.CloneableData {
 
 // Validate is always succesful
 func (o *Order) Validate() error {
-	// if err := o.Metadata.Validate(); err != nil {
-	// 	return err
-	// }
-	if err := isGenID(o.ID, true); err != nil {
-		return err
-	}
-	if err := o.Trader.Validate(); err != nil {
-		return errors.Wrap(err, "trader")
-	}
-	if err := isGenID(o.OrderBookID, false); err != nil {
-		return errors.Wrap(err, "order book id")
-	}
+	var errs error
+
+	//errs = errors.AppendField(errs, "Metadata", o.Metadata.Validate())
+	errs = errors.AppendField(errs, "ID", isGenID(o.ID, true))
+	errs = errors.AppendField(errs, "Trader", o.Trader.Validate())
+	errs = errors.AppendField(errs, "OrderBookID", isGenID(o.OrderBookID, false))
+
 	if o.Side != Side_Ask && o.Side != Side_Bid {
-		return errors.Wrap(errors.ErrState, "side")
+		errs = errors.Append(errs,
+			errors.Field("Side", errors.ErrState, "invalid side state"))
 	}
 	if o.OrderState != OrderState_Open && o.OrderState != OrderState_Done && o.OrderState != OrderState_Cancel {
-		return errors.Wrap(errors.ErrState, "order state")
+		errs = errors.Append(errs,
+			errors.Field("OrderState", errors.ErrState, "invalid order state"))
 	}
+
 	if o.OriginalOffer == nil {
-		return errors.Wrap(errors.ErrEmpty, "original offer")
-	}
-	if err := o.OriginalOffer.Validate(); err != nil {
-		return errors.Wrap(err, "original offer")
+		errs = errors.Append(errs,
+			errors.Field("OriginalOffer", errors.ErrEmpty, "empty original offer"))
+	} else if err := o.OriginalOffer.Validate(); err != nil {
+		errs = errors.AppendField(errs, "OriginalOffer", err)
 	}
 	if o.RemainingOffer == nil {
-		return errors.Wrap(errors.ErrEmpty, "remaining offer")
+		errs = errors.Append(errs,
+			errors.Field("RemainingOffer", errors.ErrEmpty, "empty remaining offer"))
+	} else if err := o.RemainingOffer.Validate(); err != nil {
+		errs = errors.AppendField(errs, "RemaningOffer", err)
 	}
-	if err := o.RemainingOffer.Validate(); err != nil {
-		return errors.Wrap(err, "remaining offer")
-	}
+
 	if err := o.Price.Validate(); err != nil {
-		return errors.Wrap(err, "price")
-	}
-	if !o.Price.IsPositive() {
-		return errors.Wrap(errors.ErrState, "price must be positive")
+		errs = errors.AppendField(errs, "Price", o.Price.Validate())
+	} else if !o.Price.IsPositive() {
+		errs = errors.Append(errs,
+			errors.Field("Price", errors.ErrState, "price must be positive"))
 	}
 	// TODO: valid trade ids (also rethink how we handle this? just use index and not in model?)
 
 	if err := o.UpdatedAt.Validate(); err != nil {
-		return errors.Wrap(err, "updated at")
+		errs = errors.AppendField(errs, "UpdatedAt", o.UpdatedAt.Validate())
+	} else if o.UpdatedAt == 0 {
+		errs = errors.Append(errs,
+			errors.Field("UpdatedAt", errors.ErrEmpty, "missing updated at"))
 	}
-	if o.UpdatedAt == 0 {
-		return errors.Wrap(errors.ErrEmpty, "missing updated at")
-	}
+
 	if err := o.CreatedAt.Validate(); err != nil {
-		return errors.Wrap(err, "created at")
+		errs = errors.AppendField(errs, "CreatedAt", o.CreatedAt.Validate())
+	} else if o.CreatedAt == 0 {
+		errs = errors.Append(errs,
+			errors.Field("CreatedAt", errors.ErrEmpty, "missing created at"))
 	}
-	if o.CreatedAt == 0 {
-		return errors.Wrap(errors.ErrEmpty, "missing created at")
-	}
-	return nil
+
+	return errs 
 }
 
 var _ morm.Model = (*Trade)(nil)
@@ -198,44 +202,40 @@ func (t *Trade) Copy() orm.CloneableData {
 }
 
 // Validate is always succesful
-func (o *Trade) Validate() error {
-	// if err := o.Metadata.Validate(); err != nil {
-	// 	return err
-	// }
-	if err := isGenID(o.ID, true); err != nil {
-		return err
+func (t *Trade) Validate() error {
+	var errs error
+
+	//errs = errors.AppendField(errs, "metadata", t.Metadata.Validate())
+
+	errs = errors.AppendField(errs, "ID", isGenID(t.ID, true))
+	errs = errors.AppendField(errs, "OrderBookID", isGenID(t.OrderBookID, false))
+	errs = errors.AppendField(errs, "OrderID", isGenID(t.OrderID, false))
+	errs = errors.AppendField(errs, "Taker", t.Taker.Validate())
+	errs = errors.AppendField(errs, "Maker", t.Maker.Validate())
+
+	if t.MakerPaid == nil {
+		errs = errors.Append(errs,
+			errors.Field("MakerPaid", errors.ErrEmpty, "missing maker paid"))
+	} else if err := t.MakerPaid.Validate(); err != nil {
+		errs = errors.AppendField(errs, "MakerPaid", err)
 	}
-	if err := isGenID(o.OrderBookID, false); err != nil {
-		return errors.Wrap(err, "order book id")
+
+	if t.TakerPaid == nil {
+		errs = errors.Append(errs,
+			errors.Field("TakerPaid ", errors.ErrEmpty, "missing taker paid"))
+	} else if err := t.TakerPaid.Validate(); err != nil {
+		errs = errors.AppendField(errs, "TakerPaid", err)
 	}
-	if err := isGenID(o.OrderID, false); err != nil {
-		return errors.Wrap(err, "order  id")
+
+	errs = errors.AppendField(errs, "ExecutedAt", t.ExecutedAt.Validate())
+	if err := t.ExecutedAt.Validate(); err != nil {
+		errors.AppendField(errs, "ExecutedAt", t.ExecutedAt.Validate())
+	} else if t.ExecutedAt == 0 {
+		errs = errors.Append(errs,
+			errors.Field("ExecutedAt", errors.ErrEmpty, "missing executed at"))
 	}
-	if err := o.Taker.Validate(); err != nil {
-		return errors.Wrap(err, "taker")
-	}
-	if err := o.Maker.Validate(); err != nil {
-		return errors.Wrap(err, "maker")
-	}
-	if o.MakerPaid == nil {
-		return errors.Wrap(errors.ErrEmpty, "maker paid")
-	}
-	if err := o.MakerPaid.Validate(); err != nil {
-		return errors.Wrap(err, "maker paid")
-	}
-	if o.TakerPaid == nil {
-		return errors.Wrap(errors.ErrEmpty, "maker paid")
-	}
-	if err := o.TakerPaid.Validate(); err != nil {
-		return errors.Wrap(err, "taker paid")
-	}
-	if err := o.ExecutedAt.Validate(); err != nil {
-		return errors.Wrap(err, "executed at")
-	}
-	if o.ExecutedAt == 0 {
-		return errors.Wrap(errors.ErrEmpty, "missing executed at")
-	}
-	return nil
+
+	return errs
 }
 
 // isGenID ensures that the ID is 8 byte input.

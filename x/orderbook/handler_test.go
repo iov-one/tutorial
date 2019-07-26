@@ -149,11 +149,15 @@ func TestCreateOrderbook(t *testing.T) {
 			tx := &weavetest.Tx{Msg: tc.msg}
 
 			if _, err := h.Check(nil, kv, tx); !tc.wantCheckErr.Is(err) {
-				t.Fatalf("unexpected check error: %+v", err)
+				t.Logf("want: %+v", tc.wantCheckErr)
+				t.Logf("got: %+v", err)
+				t.Fatalf("check (%T)", tc.msg)
 			}
 			dres, err := h.Deliver(nil, kv, tx)
 			if !tc.wantDeliverErr.Is(err) {
-				t.Fatalf("unexpected deliver error: %+v", err)
+				t.Logf("want: %+v", tc.wantDeliverErr)
+				t.Logf("got: %+v", err)
+				t.Fatalf("check (%T)", tc.msg)
 			}
 
 			// TODO: check expected
