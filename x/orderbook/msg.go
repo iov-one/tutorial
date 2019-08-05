@@ -37,7 +37,7 @@ func (m CreateOrderBookMsg) Validate() error {
 	var errs error
 
 	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
-	errs = errors.AppendField(errs, "MarketID", validID(m.MarketID))
+	errs = errors.AppendField(errs, "MarketID", validateID(m.MarketID))
 
 	if !coin.IsCC(m.AskTicker) {
 		errs = errors.Append(errs,
@@ -59,7 +59,7 @@ func (m CreateOrderMsg) Validate() error {
 
 	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
 	errs = errors.AppendField(errs, "TraderID", m.Trader.Validate())
-	errs = errors.AppendField(errs, "OrderBookID", validID(m.OrderBookID))
+	errs = errors.AppendField(errs, "OrderBookID", validateID(m.OrderBookID))
 
 	if m.Offer == nil {
 		errs = errors.Append(errs,
@@ -84,13 +84,13 @@ func (m CancelOrderMsg) Validate() error {
 	var errs error
 
 	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
-	errs = errors.AppendField(errs, "OrderID", validID(m.OrderID))
+	errs = errors.AppendField(errs, "OrderID", validateID(m.OrderID))
 	return errs
 }
 
-// validID returns an error if this is not an 8-byte ID
+// validateID returns an error if this is not an 8-byte ID
 // as expected for orm.IDGenBucket
-func validID(id []byte) error {
+func validateID(id []byte) error {
 	if len(id) == 0 {
 		return errors.Wrap(errors.ErrEmpty, "id missing")
 	}
