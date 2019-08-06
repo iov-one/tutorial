@@ -7,6 +7,7 @@ import (
 	"github.com/iov-one/weave/errors"
 )
 
+// NewAmount takes whole and fractional, returns Amount struct
 func NewAmount(whole int64, fractional int64) Amount {
 	return Amount{
 		Whole:      whole,
@@ -14,6 +15,7 @@ func NewAmount(whole int64, fractional int64) Amount {
 	}
 }
 
+// NewAmountp takes whole and fractional, returns Amount struct pointer
 func NewAmountp(whole int64, fractional int64) *Amount {
 	return &Amount{
 		Whole:      whole,
@@ -21,6 +23,7 @@ func NewAmountp(whole int64, fractional int64) *Amount {
 	}
 }
 
+// Clone copies values of Amount to a new Amount struct
 func (a *Amount) Clone() *Amount {
 	return &Amount{
 		Whole:      a.Whole,

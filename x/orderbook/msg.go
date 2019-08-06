@@ -21,18 +21,22 @@ var _ weave.Msg = (*CancelOrderMsg)(nil)
 
 // ROUTING, Path method fulfills weave.Msg interface to allow routing
 
+// Path returns the routing path for this message.
 func (CreateOrderBookMsg) Path() string {
 	return "order/create_book"
 }
 
+// Path returns the routing path for this message.
 func (CreateOrderMsg) Path() string {
 	return "order/create"
 }
 
+// Path returns the routing path for this message.
 func (CancelOrderMsg) Path() string {
 	return "order/cancel"
 }
 
+// Validate ensures the CreateOrderBookMsg is valid
 func (m CreateOrderBookMsg) Validate() error {
 	var errs error
 
@@ -52,6 +56,7 @@ func (m CreateOrderBookMsg) Validate() error {
 	return errs
 }
 
+// Validate ensures the CreateOrderMsg is valid
 func (m CreateOrderMsg) Validate() error {
 	var errs error
 
@@ -77,6 +82,7 @@ func (m CreateOrderMsg) Validate() error {
 	return errs
 }
 
+// Validate ensures the CancelOrderMsg is valid
 func (m CancelOrderMsg) Validate() error {
 	var errs error
 
