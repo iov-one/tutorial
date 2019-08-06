@@ -8,48 +8,74 @@ import (
 	"github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/weavetest"
+	"github.com/iov-one/weave/weavetest/assert"
 
 	"github.com/iov-one/tutorial/morm"
 )
 
 func TestValidateOrderBook(t *testing.T) {
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model      morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &OrderBook{
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				MarketID:  weavetest.SequenceID(5),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      nil,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
 		"success, with id": {
-			msg: &OrderBook{
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				ID:        weavetest.SequenceID(13),
 				MarketID:  weavetest.SequenceID(1),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      nil,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
-		"failure no market id": {
-			msg: &OrderBook{
+		"failure, no market id": {
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				ID:        weavetest.SequenceID(13),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      errors.ErrEmpty,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
