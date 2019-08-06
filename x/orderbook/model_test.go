@@ -139,11 +139,11 @@ func TestValidateOrder(t *testing.T) {
 	now := weave.AsUnixTime(time.Now())
 
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				Trader:         weavetest.NewCondition().Address(),
 				OrderBookID:    weavetest.SequenceID(5),
@@ -155,10 +155,21 @@ func TestValidateOrder(t *testing.T) {
 				CreatedAt:      now,
 				UpdatedAt:      now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      nil,
+				"CreatedAt":      nil,
+			},
 		},
 		"success, with id": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				ID:             weavetest.SequenceID(17),
 				Trader:         weavetest.NewCondition().Address(),
@@ -171,10 +182,21 @@ func TestValidateOrder(t *testing.T) {
 				CreatedAt:      now,
 				UpdatedAt:      now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      nil,
+				"CreatedAt":      nil,
+			},
 		},
 		"missing timestamps": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				ID:             weavetest.SequenceID(17),
 				Trader:         weavetest.NewCondition().Address(),
@@ -185,13 +207,25 @@ func TestValidateOrder(t *testing.T) {
 				RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
 				Price:          NewAmountp(121, 0),
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      errors.ErrEmpty,
+				"CreatedAt":      errors.ErrEmpty,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
