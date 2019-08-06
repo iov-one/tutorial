@@ -8,48 +8,74 @@ import (
 	"github.com/iov-one/weave/coin"
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/weavetest"
+	"github.com/iov-one/weave/weavetest/assert"
 
 	"github.com/iov-one/tutorial/morm"
 )
 
 func TestValidateOrderBook(t *testing.T) {
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &OrderBook{
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				MarketID:  weavetest.SequenceID(5),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      nil,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
 		"success, with id": {
-			msg: &OrderBook{
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				ID:        weavetest.SequenceID(13),
 				MarketID:  weavetest.SequenceID(1),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      nil,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
-		"failure no market id": {
-			msg: &OrderBook{
+		"failure, no market id": {
+			model: &OrderBook{
 				Metadata:  &weave.Metadata{Schema: 1},
 				ID:        weavetest.SequenceID(13),
 				AskTicker: "BAR",
 				BidTicker: "FOO",
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":            nil,
+				"Metadata":      nil,
+				"MarketID":      errors.ErrEmpty,
+				"AskTicker":     nil,
+				"BidTicker":     nil,
+				"TotalAskCount": nil,
+				"TotalBidCount": nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
@@ -57,40 +83,53 @@ func TestValidateOrderBook(t *testing.T) {
 
 func TestValidateMarket(t *testing.T) {
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				Owner:    weavetest.NewCondition().Address(),
 				Name:     "Fred",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      nil,
+				"MarketName": nil,
+			},
 		},
 		"success, with id": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				ID:       weavetest.SequenceID(2),
 				Owner:    weavetest.NewCondition().Address(),
 				Name:     "Fred",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      nil,
+				"MarketName": nil,
+			},
 		},
 		"failure bad owner": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				ID:       weavetest.SequenceID(2),
 				Owner:    []byte("foobar"),
 				Name:     "Fred",
 			},
-			wantErr: errors.ErrInput,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      errors.ErrInput,
+				"MarketName": nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
@@ -100,11 +139,11 @@ func TestValidateOrder(t *testing.T) {
 	now := weave.AsUnixTime(time.Now())
 
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				Trader:         weavetest.NewCondition().Address(),
 				OrderBookID:    weavetest.SequenceID(5),
@@ -116,10 +155,21 @@ func TestValidateOrder(t *testing.T) {
 				CreatedAt:      now,
 				UpdatedAt:      now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      nil,
+				"CreatedAt":      nil,
+			},
 		},
 		"success, with id": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				ID:             weavetest.SequenceID(17),
 				Trader:         weavetest.NewCondition().Address(),
@@ -132,10 +182,21 @@ func TestValidateOrder(t *testing.T) {
 				CreatedAt:      now,
 				UpdatedAt:      now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      nil,
+				"CreatedAt":      nil,
+			},
 		},
 		"missing timestamps": {
-			msg: &Order{
+			model: &Order{
 				Metadata:       &weave.Metadata{Schema: 1},
 				ID:             weavetest.SequenceID(17),
 				Trader:         weavetest.NewCondition().Address(),
@@ -146,13 +207,25 @@ func TestValidateOrder(t *testing.T) {
 				RemainingOffer: coin.NewCoinp(50, 17, "ETH"),
 				Price:          NewAmountp(121, 0),
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":             nil,
+				"Trader":         nil,
+				"OrderBookID":    nil,
+				"Side":           nil,
+				"OrderState":     nil,
+				"OriginalOffer":  nil,
+				"RemainingOffer": nil,
+				"Price":          nil,
+				"UpdatedAt":      errors.ErrEmpty,
+				"CreatedAt":      errors.ErrEmpty,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
@@ -162,11 +235,11 @@ func TestValidateTrade(t *testing.T) {
 	now := weave.AsUnixTime(time.Now())
 
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				OrderID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
@@ -176,10 +249,19 @@ func TestValidateTrade(t *testing.T) {
 				MakerPaid:   coin.NewCoinp(7, 234456, "BTC"),
 				ExecutedAt:  now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   nil,
+				"MakerPaid":   nil,
+				"ExecutedAt":  nil,
+			},
 		},
 		"success, with id": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
 				OrderID:     weavetest.SequenceID(14),
@@ -190,26 +272,44 @@ func TestValidateTrade(t *testing.T) {
 				MakerPaid:   coin.NewCoinp(7, 234456, "BTC"),
 				ExecutedAt:  now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   nil,
+				"MakerPaid":   nil,
+				"ExecutedAt":  nil,
+			},
 		},
 		"missing payment": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
 				OrderID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
 				Taker:       weavetest.NewCondition().Address(),
 				Maker:       weavetest.NewCondition().Address(),
-				TakerPaid:   coin.NewCoinp(100, 0, "ETH"),
 				ExecutedAt:  now,
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   errors.ErrEmpty,
+				"MakerPaid":   errors.ErrEmpty,
+				"ExecutedAt":  nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}

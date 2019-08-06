@@ -40,12 +40,10 @@ func (m CreateOrderBookMsg) Validate() error {
 	errs = errors.AppendField(errs, "MarketID", validateID(m.MarketID))
 
 	if !coin.IsCC(m.AskTicker) {
-		errs = errors.Append(errs,
-			errors.Field("AskTicker", errors.ErrCurrency, "invalid ask ticker"))
+		errs = errors.AppendField(errs, "AskTicker", errors.ErrCurrency)
 	}
 	if !coin.IsCC(m.BidTicker) {
-		errs = errors.Append(errs,
-			errors.Field("BidTicker", errors.ErrCurrency, "invalid bid ticker"))
+		errs = errors.AppendField(errs, "BidTicker", errors.ErrCurrency)
 	}
 	if m.BidTicker <= m.AskTicker {
 		errs = errors.Append(errs,
@@ -62,8 +60,7 @@ func (m CreateOrderMsg) Validate() error {
 	errs = errors.AppendField(errs, "OrderBookID", validateID(m.OrderBookID))
 
 	if m.Offer == nil {
-		errs = errors.Append(errs,
-			errors.Field("Offer", errors.ErrEmpty, "empty offer"))
+		errs = errors.AppendField(errs, "Offer", errors.ErrEmpty)
 	} else if err := m.Offer.Validate(); err != nil {
 		errs = errors.AppendField(errs, "Offer", err)
 	} else if !m.Offer.IsPositive() {

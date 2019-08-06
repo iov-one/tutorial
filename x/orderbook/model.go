@@ -1,7 +1,6 @@
 package orderbook
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/iov-one/tutorial/morm"
@@ -39,8 +38,7 @@ func (m *Market) Validate() error {
 	errs = errors.AppendField(errs, "Owner", m.Owner.Validate())
 
 	if !validMarketName(m.Name) {
-		errs = errors.Append(errs,
-			errors.Field("MarketName", errors.ErrModel, "invalid market name"))
+		errs = errors.AppendField(errs, "MarketName", errors.ErrModel)
 	}
 
 	return errs
@@ -76,21 +74,17 @@ func (o *OrderBook) Validate() error {
 	errs = errors.AppendField(errs, "MarketID", isGenID(o.MarketID, false))
 
 	if !coin.IsCC(o.AskTicker) {
-		errs = errors.Append(errs,
-			errors.Field("AskTicker", errors.ErrCurrency, fmt.Sprintf("Invalid ask ticker: %s", o.AskTicker)))
+		errs = errors.AppendField(errs, "AskTicker", errors.ErrCurrency)
 	}
 	if !coin.IsCC(o.BidTicker) {
-		errs = errors.Append(errs,
-			errors.Field("BidTicker", errors.ErrCurrency, fmt.Sprintf("Invalid bid ticker: %s", o.BidTicker)))
+		errs = errors.AppendField(errs, "BidTicker", errors.ErrCurrency)
 	}
 
 	if o.TotalAskCount < 0 {
-		errs = errors.Append(errs,
-			errors.Field("TotalAskCount", errors.ErrModel, "negative total ask count"))
+		errs = errors.AppendField(errs, "TotalAskCount", errors.ErrModel)
 	}
 	if o.TotalBidCount < 0 {
-		errs = errors.Append(errs,
-			errors.Field("TotalBidCount", errors.ErrModel, "negative total bid count"))
+		errs = errors.AppendField(errs, "TotalBidCount", errors.ErrModel)
 	}
 
 	return errs
@@ -132,23 +126,19 @@ func (o *Order) Validate() error {
 	errs = errors.AppendField(errs, "OrderBookID", isGenID(o.OrderBookID, false))
 
 	if o.Side != Side_Ask && o.Side != Side_Bid {
-		errs = errors.Append(errs,
-			errors.Field("Side", errors.ErrState, "invalid side state"))
+		errs = errors.AppendField(errs, "Side", errors.ErrState)
 	}
 	if o.OrderState != OrderState_Open && o.OrderState != OrderState_Done && o.OrderState != OrderState_Cancel {
-		errs = errors.Append(errs,
-			errors.Field("OrderState", errors.ErrState, "invalid order state"))
+		errs = errors.AppendField(errs, "OrderState", errors.ErrState)
 	}
 
 	if o.OriginalOffer == nil {
-		errs = errors.Append(errs,
-			errors.Field("OriginalOffer", errors.ErrEmpty, "empty original offer"))
+		errs = errors.AppendField(errs, "OriginalOffer", errors.ErrEmpty)
 	} else if err := o.OriginalOffer.Validate(); err != nil {
 		errs = errors.AppendField(errs, "OriginalOffer", err)
 	}
 	if o.RemainingOffer == nil {
-		errs = errors.Append(errs,
-			errors.Field("RemainingOffer", errors.ErrEmpty, "empty remaining offer"))
+		errs = errors.AppendField(errs, "RemainingOffer", errors.ErrEmpty)
 	} else if err := o.RemainingOffer.Validate(); err != nil {
 		errs = errors.AppendField(errs, "RemaningOffer", err)
 	}
@@ -164,18 +154,16 @@ func (o *Order) Validate() error {
 	if err := o.UpdatedAt.Validate(); err != nil {
 		errs = errors.AppendField(errs, "UpdatedAt", o.UpdatedAt.Validate())
 	} else if o.UpdatedAt == 0 {
-		errs = errors.Append(errs,
-			errors.Field("UpdatedAt", errors.ErrEmpty, "missing updated at"))
+		errs = errors.AppendField(errs, "UpdatedAt", errors.ErrEmpty)
 	}
 
 	if err := o.CreatedAt.Validate(); err != nil {
 		errs = errors.AppendField(errs, "CreatedAt", o.CreatedAt.Validate())
 	} else if o.CreatedAt == 0 {
-		errs = errors.Append(errs,
-			errors.Field("CreatedAt", errors.ErrEmpty, "missing created at"))
+		errs = errors.AppendField(errs, "CreatedAt", errors.ErrEmpty)
 	}
 
-	return errs 
+	return errs
 }
 
 var _ morm.Model = (*Trade)(nil)
@@ -214,15 +202,13 @@ func (t *Trade) Validate() error {
 	errs = errors.AppendField(errs, "Maker", t.Maker.Validate())
 
 	if t.MakerPaid == nil {
-		errs = errors.Append(errs,
-			errors.Field("MakerPaid", errors.ErrEmpty, "missing maker paid"))
+		errs = errors.AppendField(errs, "MakerPaid", errors.ErrEmpty)
 	} else if err := t.MakerPaid.Validate(); err != nil {
 		errs = errors.AppendField(errs, "MakerPaid", err)
 	}
 
 	if t.TakerPaid == nil {
-		errs = errors.Append(errs,
-			errors.Field("TakerPaid ", errors.ErrEmpty, "missing taker paid"))
+		errs = errors.AppendField(errs, "TakerPaid", errors.ErrEmpty)
 	} else if err := t.TakerPaid.Validate(); err != nil {
 		errs = errors.AppendField(errs, "TakerPaid", err)
 	}
@@ -231,8 +217,7 @@ func (t *Trade) Validate() error {
 	if err := t.ExecutedAt.Validate(); err != nil {
 		errors.AppendField(errs, "ExecutedAt", t.ExecutedAt.Validate())
 	} else if t.ExecutedAt == 0 {
-		errs = errors.Append(errs,
-			errors.Field("ExecutedAt", errors.ErrEmpty, "missing executed at"))
+		errs = errors.AppendField(errs, "ExecutedAt", errors.ErrEmpty)
 	}
 
 	return errs
