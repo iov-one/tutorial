@@ -235,11 +235,11 @@ func TestValidateTrade(t *testing.T) {
 	now := weave.AsUnixTime(time.Now())
 
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				OrderID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
@@ -249,10 +249,19 @@ func TestValidateTrade(t *testing.T) {
 				MakerPaid:   coin.NewCoinp(7, 234456, "BTC"),
 				ExecutedAt:  now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   nil,
+				"MakerPaid":   nil,
+				"ExecutedAt":  nil,
+			},
 		},
 		"success, with id": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
 				OrderID:     weavetest.SequenceID(14),
@@ -263,26 +272,44 @@ func TestValidateTrade(t *testing.T) {
 				MakerPaid:   coin.NewCoinp(7, 234456, "BTC"),
 				ExecutedAt:  now,
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   nil,
+				"MakerPaid":   nil,
+				"ExecutedAt":  nil,
+			},
 		},
 		"missing payment": {
-			msg: &Trade{
+			model: &Trade{
 				Metadata:    &weave.Metadata{Schema: 1},
 				ID:          weavetest.SequenceID(7654),
 				OrderID:     weavetest.SequenceID(14),
 				OrderBookID: weavetest.SequenceID(2),
 				Taker:       weavetest.NewCondition().Address(),
 				Maker:       weavetest.NewCondition().Address(),
-				TakerPaid:   coin.NewCoinp(100, 0, "ETH"),
 				ExecutedAt:  now,
 			},
-			wantErr: errors.ErrEmpty,
+			wantErrs: map[string]*errors.Error{
+				"ID":          nil,
+				"OrderBookID": nil,
+				"OrderID":     nil,
+				"Taker":       nil,
+				"Maker":       nil,
+				"TakerPaid":   errors.ErrEmpty,
+				"MakerPaid":   errors.ErrEmpty,
+				"ExecutedAt":  nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}

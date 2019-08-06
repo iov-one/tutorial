@@ -222,7 +222,7 @@ func (t *Trade) Validate() error {
 
 	if t.TakerPaid == nil {
 		errs = errors.Append(errs,
-			errors.Field("TakerPaid ", errors.ErrEmpty, "missing taker paid"))
+			errors.Field("TakerPaid", errors.ErrEmpty, "missing taker paid"))
 	} else if err := t.TakerPaid.Validate(); err != nil {
 		errs = errors.AppendField(errs, "TakerPaid", err)
 	}
