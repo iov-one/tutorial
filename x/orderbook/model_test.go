@@ -15,7 +15,7 @@ import (
 
 func TestValidateOrderBook(t *testing.T) {
 	cases := map[string]struct {
-		model      morm.Model
+		model    morm.Model
 		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
@@ -83,40 +83,53 @@ func TestValidateOrderBook(t *testing.T) {
 
 func TestValidateMarket(t *testing.T) {
 	cases := map[string]struct {
-		msg     morm.Model
-		wantErr *errors.Error
+		model    morm.Model
+		wantErrs map[string]*errors.Error
 	}{
 		"success, no id": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				Owner:    weavetest.NewCondition().Address(),
 				Name:     "Fred",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      nil,
+				"MarketName": nil,
+			},
 		},
 		"success, with id": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				ID:       weavetest.SequenceID(2),
 				Owner:    weavetest.NewCondition().Address(),
 				Name:     "Fred",
 			},
-			wantErr: nil,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      nil,
+				"MarketName": nil,
+			},
 		},
 		"failure bad owner": {
-			msg: &Market{
+			model: &Market{
 				Metadata: &weave.Metadata{Schema: 1},
 				ID:       weavetest.SequenceID(2),
 				Owner:    []byte("foobar"),
 				Name:     "Fred",
 			},
-			wantErr: errors.ErrInput,
+			wantErrs: map[string]*errors.Error{
+				"ID":         nil,
+				"Owner":      errors.ErrInput,
+				"MarketName": nil,
+			},
 		},
 	}
 	for testName, tc := range cases {
 		t.Run(testName, func(t *testing.T) {
-			if err := tc.msg.Validate(); !tc.wantErr.Is(err) {
-				t.Fatalf("unexpected error: %+v", err)
+			err := tc.model.Validate()
+			for field, wantErr := range tc.wantErrs {
+				assert.FieldError(t, err, field, wantErr)
 			}
 		})
 	}
